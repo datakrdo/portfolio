@@ -18,4 +18,4 @@ The goal of the project is to create a prediction model that identifies the stag
 - Hyperparameter tuning
 
 ## Resolution
-Jupyter Notebook with my project can be found [here](mean_var_std_krdo.ipynb).
+Jupyter Notebook with my project can be found [here](pbc-portfolio.ipynb).
