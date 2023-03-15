@@ -6,4 +6,4 @@ These are my personal projects, from scratch, without following any tutorial or 
 
 ## Projects
 
-1. [Primary Biliar Cirrhosis Prediction using ML](01-mean-variance-standard-deviation-calculator)
+1. [Primary Biliar Cirrhosis Prediction using ML](cirrhosis)
