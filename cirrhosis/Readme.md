@@ -7,6 +7,7 @@ The goal of the project is to create a prediction model that identifies the stag
 - Pandas
 - Seaborn
 - MICE Imputation
+- Pipeline
 - XGBoost
 - RandomSearchCV
 
