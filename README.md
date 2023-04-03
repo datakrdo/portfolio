@@ -27,4 +27,4 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 
 ### Data Visualization
 
-Please head [here](https://github.com/datakrdo/dataviz)
+Please head over [here](https://github.com/datakrdo/dataviz)
