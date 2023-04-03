@@ -13,4 +13,4 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 
 ### Machine Learning
 
-1. [Primary Biliar Cirrhosis Prediction using ML](cirrhosis)
+1. [Primary Biliar Cirrhosis Prediction](cirrhosis)
