@@ -158,10 +158,10 @@ ORDER BY TotalDeathCount DESC
 
 SELECT Location, Population, MAX(total_cases) AS HighestInfectionCount,MAX((total_cases/population))*100 AS PercentPopulationInfected
 FROM CovidPortfolio..Deaths
-GROUP BY Location, Population
+GROUP BY location, population
 ORDER BY PercentPopulationInfected DESC
 
 SELECT Location, Population,date, MAX(total_cases) AS HighestInfectionCount,MAX((total_cases/population))*100 AS PercentPopulationInfected
 FROM CovidPortfolio..Deaths
-GROUP BY Location, Population, date
+GROUP BY location, population, date
 ORDER BY PercentPopulationInfected DESC
