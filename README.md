@@ -8,8 +8,8 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 
 ### SQL
 
-1. [Nashville Housing Data Cleaning in SQL](sql_cleaning)
-2. [COVID-19 Data Exploration in SQL](sql_covid)
+1. [Nashville Housing Data Cleaning](sql_cleaning)
+2. [COVID-19 Data Exploration](sql_covid)
 
 ### Machine Learning
 
