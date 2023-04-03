@@ -143,25 +143,25 @@ WHERE dea.continent IS NOT NULL
 SELECT *
 FROM PercentPopulationVaccinated
 
-Select SUM(new_cases) as total_cases, SUM(cast(new_deaths as int)) as total_deaths, SUM(cast(new_deaths as int))/SUM(New_Cases)*100 as DeathPercentage
-From CovidPortfolio..Deaths
-where continent is not null 
-order by 1,2
+SELECT SUM(new_cases) AS total_cases, SUM(CAST(new_deaths AS int)) AS total_deaths, SUM(CAST(new_deaths AS int))/SUM(New_Cases)*100 AS DeathPercentage
+FROM CovidPortfolio..Deaths
+WHERE continent IS NOT NULL
+ORDER BY 1,2
 
-Select location, SUM(cast(new_deaths as int)) as TotalDeathCount
-From CovidPortfolio..Deaths
-Where continent is null 
-and location not in ('World', 'European Union', 'International')
-Group by location
-order by TotalDeathCount desc
+SELECT location, SUM(CAST(new_deaths AS int)) AS TotalDeathCount
+FROM CovidPortfolio..Deaths
+WHERE continent IS NULL
+AND location NOT IN ('World', 'European Union', 'International')
+GROUP BY location
+ORDER BY TotalDeathCount DESC
 
 
-Select Location, Population, MAX(total_cases) as HighestInfectionCount,  Max((total_cases/population))*100 as PercentPopulationInfected
-From CovidPortfolio..Deaths
-Group by Location, Population
-order by PercentPopulationInfected desc
+SELECT Location, Population, MAX(total_cases) AS HighestInfectionCount,MAX((total_cases/population))*100 AS PercentPopulationInfected
+FROM CovidPortfolio..Deaths
+GROUP BY Location, Population
+ORDER BY PercentPopulationInfected DESC
 
-Select Location, Population,date, MAX(total_cases) as HighestInfectionCount,  Max((total_cases/population))*100 as PercentPopulationInfected
-From CovidPortfolio..Deaths
-Group by Location, Population, date
-order by PercentPopulationInfected desc
+SELECT Location, Population,date, MAX(total_cases) AS HighestInfectionCount,MAX((total_cases/population))*100 AS PercentPopulationInfected
+FROM CovidPortfolio..Deaths
+GROUP BY Location, Population, date
+ORDER BY PercentPopulationInfected DESC
