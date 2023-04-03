@@ -2,7 +2,7 @@
 
 ## Description
 
-These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find another 
+These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find a mistake or another point of view, please feel free to contact me in my [LinkedIn](https://www.linkedin.com/in/federicodignani/) 
 
 ## Projects
 
@@ -11,10 +11,6 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 1. [Nashville Housing Data Cleaning](sql_cleaning)
 2. [COVID-19 Data Exploration](sql_covid)
 3. [Rental Database Exploration](sql_sakila)
-
-### Data Visualization
-
-Please head [here](https://github.com/datakrdo/dataviz)
 
 ### Python
 
@@ -28,3 +24,7 @@ Please head [here](https://github.com/datakrdo/dataviz)
 
 1. [Primary Biliar Cirrhosis Prediction](cirrhosis)
 2. [Winning Space Race With Data Science](https://github.com/datakrdo/coursera_IBM_capstone)
+
+### Data Visualization
+
+Please head [here](https://github.com/datakrdo/dataviz)
