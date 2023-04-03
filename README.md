@@ -12,6 +12,15 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 2. [COVID-19 Data Exploration](sql_covid)
 3. [Rental Database Exploration](sql_sakila)
 
+### Data Visualization
+
+Please head to ....
+
+### Data Analysis with Python
+
+Please head to ....
+
 ### Machine Learning
 
 1. [Primary Biliar Cirrhosis Prediction](cirrhosis)
+2. [Winning Space Race With Data Science]
