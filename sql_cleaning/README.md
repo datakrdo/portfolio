@@ -4,7 +4,7 @@
 The goal of the project is to perform Data Cleaning in a dataset, directly from SQL.
 
 ## Tools :hammer_and_wrench:
-- MS SQL Service
+- MS SQL Server
 
 ## Skills :nerd_face:
 - Data Cleaning
