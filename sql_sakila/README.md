@@ -16,4 +16,4 @@ The goal of the project is to find some insights and answer some questions query
 - Creating Views
 
 ## Resolution
-SQL file with my project can be found [here](sql_sakila.sql).
+SQL file with my project can be found [here](sql-sakila.sql).
