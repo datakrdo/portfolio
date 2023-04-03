@@ -27,4 +27,8 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 
 ### Data Visualization
 
-Please head over [here](https://github.com/datakrdo/dataviz)
+#### STD in California
+
+![std](https://user-images.githubusercontent.com/99193152/228335818-3691fc73-e13d-461b-81a4-2f8745b183ff.png)
+
+Click [here](https://public.tableau.com/app/profile/federico.dignani/viz/STDCalifornia/Dashboard1?publish=yes) to access the interactive dashboard in Tableau Public.
