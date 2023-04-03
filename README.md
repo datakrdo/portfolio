@@ -2,7 +2,7 @@
 
 ## Description
 
-These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find a mistake or another point of view, please feel free to contact me at my [LinkedIn](https://www.linkedin.com/in/federicodignani/).
+These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find a mistake or another point of view, please feel free to contact me at my [LinkedIn](https://www.linkedin.com/in/federicodignani/). There's always room from improvement.
 
 ## Projects
 
