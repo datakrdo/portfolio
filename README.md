@@ -18,7 +18,7 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 2. [Demographic Data Analyzer](https://github.com/datakrdo/freecodecamp-dapython/02-demographic-data-analyzer)
 3. [Medical Data Visualizer](https://github.com/datakrdo/freecodecamp-dapython/03-medical-data-visualizer)
 4. [Page View Time Series Visualizer](https://github.com/datakrdo/freecodecamp-dapython/04-page-view-time-series-visualizer)
-5. [Sea Level Predictor](https://github.com/datakrdo/freecodecamp-dapython/05-sea-level-predictor)
+5. [Sea Level Predictor](https://github.com/datakrdo/freecodecamp-dapython/05-sea-level-predictor/)
 
 ### Machine Learning
 
