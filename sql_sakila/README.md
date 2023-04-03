@@ -8,12 +8,9 @@ The goal of the project is to find some insights and answer some questions query
 
 ## Skills :nerd_face:
 - Aggregate Functions
-- Converting Data Types
-- Windows Functions
+- Case Statements
 - Joins
-- CTEs
-- Temp Tables
-- Creating Views
+- Subqueries
 
 ## Resolution
 SQL file with my project can be found [here](sql-sakila.sql).
