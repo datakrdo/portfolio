@@ -2,7 +2,7 @@
 
 ## Description
 
-These are my personal projects, from scratch. All mistakes and hits are 100% mine.
+These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find another 
 
 ## Projects
 
@@ -14,13 +14,17 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 
 ### Data Visualization
 
-Please head to ....
+Please head [here](https://github.com/datakrdo/dataviz)
 
-### Data Analysis with Python
+### Python
 
-Please head to ....
+1. [Mean-Variance-Standard Deviation Calculator](https://github.com/datakrdo/freecodecamp-dapython/01-mean-variance-standard-deviation-calculator)
+2. [Demographic Data Analyzer](https://github.com/datakrdo/freecodecamp-dapython/02-demographic-data-analyzer)
+3. [Medical Data Visualizer](https://github.com/datakrdo/freecodecamp-dapython/03-medical-data-visualizer)
+4. [Page View Time Series Visualizer](https://github.com/datakrdo/freecodecamp-dapython/04-page-view-time-series-visualizer)
+5. [Sea Level Predictor](https://github.com/datakrdo/freecodecamp-dapython/05-sea-level-predictor)
 
 ### Machine Learning
 
 1. [Primary Biliar Cirrhosis Prediction](cirrhosis)
-2. [Winning Space Race With Data Science]
+2. [Winning Space Race With Data Science](https://github.com/datakrdo/coursera_IBM_capstone)
