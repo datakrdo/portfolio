@@ -10,6 +10,7 @@ These are my personal projects, from scratch. All mistakes and hits are 100% min
 
 1. [Nashville Housing Data Cleaning](sql_cleaning)
 2. [COVID-19 Data Exploration](sql_covid)
+3. [Rental Database Exploration](sql_sakila)
 
 ### Machine Learning
 
