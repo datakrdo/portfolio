@@ -2,7 +2,7 @@
 
 ## Description
 
-These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find a mistake or want to share another approach for the same problem, feel free to contact me at [fadignani@gmail.com](fadignani@gmail.com). There's always room from improvement.
+These are my personal projects, from scratch. All mistakes and hits are 100% mine. If you find a mistake or want to share another approach for the same problem, feel free to contact me at <fadignani@gmail.com>. There's always room from improvement.
 
 ## Projects
 
