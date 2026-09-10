@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pbc-modeling"
+version = "2026.1.0"
+description = "PBC cirrhosis stage prediction: production pipeline and portfolio notebook"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Federico Dignani" }]
+dependencies = [
+    "numpy>=2.4",
+    "pandas>=2.2",
+    "scikit-learn>=1.7",
+    "scipy>=1.15",
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+]
+
+[project.optional-dependencies]
+shap = ["shap>=0.46"]
+optuna = ["optuna>=4.1"]
+lgbm = ["lightgbm>=4.5"]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.15",
+    "mypy>=1.13",
+    "nbconvert>=7.16",
+    "nbformat>=5.10",
+    "jupyter>=1.1",
+    "ipykernel>=6.29",
+]
+all = [
+    "shap>=0.46",
+    "optuna>=4.1",
+    "lightgbm>=4.5",
+    "pytest>=8.3",
+    "ruff>=0.15",
+    "mypy>=1.13",
+    "nbconvert>=7.16",
+    "nbformat>=5.10",
+    "jupyter>=1.1",
+    "ipykernel>=6.29",
+]
+
+[project.scripts]
+pbc-pipeline = "scripts.run_pipeline:main"
+pbc-eda = "scripts.run_eda:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["src*", "scripts*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".agents", ".clinerules", ".claude", ".cline"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "scripts"]
