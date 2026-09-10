@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Lint (ruff check)
+        run: uv run ruff check src/ scripts/ tests/
+
+      - name: Format check (ruff format)
+        run: uv run ruff format --check src/ scripts/ tests/
+
+      - name: Test (pytest)
+        run: uv run pytest -q
+
+      - name: No-leakage smoke test
+        run: |
+          uv run python -c "
+          from src.data import load_pbc_data, train_test_split_pipeline
+          from src.modeling import build_named_pipeline
+
+          frame = load_pbc_data()
+          split = train_test_split_pipeline(frame)
+          assert 'Drug' not in split.X_train.columns
+          for name in ['logistic', 'random_forest', 'hist_gradient_boosting']:
+              pipe = build_named_pipeline(name, split.X_train)
+              pipe.fit(split.X_train, split.y_binary_train)
+              names = pipe.named_steps['preprocess'].get_feature_names_out()
+              assert not any('drug' in n.lower() for n in names), (name, names)
+          print('No-leakage assertion passed.')
+          "
