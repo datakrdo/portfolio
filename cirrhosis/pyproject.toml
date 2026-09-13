@@ -64,5 +64,10 @@ extend-exclude = [".agents", ".clinerules", ".claude", ".cline"]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Notebooks resolve PROJECT_ROOT and extend sys.path before importing from src,
+# all in one leading cell -- E402 is a structural necessity here, not a smell.
+"notebooks/*.ipynb" = ["E402"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["src", "scripts"]
