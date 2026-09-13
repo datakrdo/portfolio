@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Lint (ruff check)
+        run: uv run ruff check src/ tests/
+
+      - name: Format check (ruff format)
+        run: uv run ruff format --check src/ tests/
+
+      - name: Test (pytest)
+        run: uv run pytest -q
+
+      - name: No-leakage smoke test
+        run: |
+          uv run python -c "
+          import pandas as pd
+          from src.fraud.data import LEAKAGE_COLUMNS
+          from src.fraud.features import build_features
+
+          n = 50
+          frame = pd.DataFrame({
+              'cc_num': [str(i % 3) for i in range(n)],
+              'trans_date_trans_time': pd.date_range('2020-01-01', periods=n, freq='2h'),
+              'merchant': ['a'] * n,
+              'category': ['shopping_net'] * n,
+              'amt': [10.0] * n,
+              'first': ['x'] * n, 'last': ['y'] * n, 'street': ['z'] * n,
+              'unix_time': [0] * n,
+              'dob': pd.to_datetime(['1990-01-01'] * n),
+              'trans_num': [str(i) for i in range(n)],
+              'lat': [40.0] * n, 'long': [-70.0] * n,
+              'merch_lat': [40.1] * n, 'merch_long': [-70.1] * n,
+              'is_fraud': [0] * n,
+          })
+          baseline = build_features(frame)
+
+          altered = frame.copy()
+          altered.loc[n - 1, 'amt'] = 999_999.0
+          changed = build_features(altered)
+
+          for col in ['tx_count_card_1h', 'amt_sum_card_1h', 'amt_zscore_vs_card_history']:
+              assert (baseline[col].to_numpy()[:-1] == changed[col].to_numpy()[:-1]).all(), col
+          assert set(LEAKAGE_COLUMNS) <= set(baseline.columns)
+          print('No-leakage assertion passed.')
+          "
