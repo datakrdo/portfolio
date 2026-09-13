@@ -5,7 +5,7 @@ cohort (1974–1984). The primary endpoint is **Stage 3–4 versus Stage 1–2**
 cumulative ordinal analyses remain exploratory secondary endpoints.
 
 The self-contained, narrative deliverable is
-**[`pbc-portfolio-2026.ipynb`](pbc-portfolio-2026.ipynb)** — it imports no local `src/`
+**[`pbc-portfolio.ipynb`](pbc-portfolio.ipynb)** — it imports no local `src/`
 modules and can be read or re-run on its own. The maintained, tested source lives under
 `src/`, orchestrated by `scripts/run_pipeline.py`.
 
@@ -107,7 +107,7 @@ selected only via `TunedThresholdClassifierCV` on training folds, and `Drug` is 
   results.
 - `03_model_development.ipynb` — nested CV, bootstrap optimism correction, Optuna HPO, SHAP,
   and the full model comparison.
-- `pbc-portfolio-2026.ipynb` (repo root) — self-contained narrative deliverable; the one
+- `pbc-portfolio.ipynb` (repo root) — self-contained narrative deliverable; the one
   meant to be read or re-run on its own, without `src/`.
 
 Every executable notebook cell is immediately followed by a short discussion of what the
