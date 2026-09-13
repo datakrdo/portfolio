@@ -72,6 +72,10 @@ Dos entregables:
 
 ## Quick start 🚀
 
+`data/` está en `.gitignore`: descargar el dataset Sparkov desde
+[Kaggle](https://www.kaggle.com/datasets/kartik2112/fraud-detection) y colocar
+`fraudTrain.csv`/`fraudTest.csv` en `data/raw/` antes de correr lo siguiente.
+
 ```bash
 uv sync --all-extras
 uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
