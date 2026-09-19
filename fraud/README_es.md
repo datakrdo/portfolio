@@ -1,6 +1,6 @@
-[English](README.md) · [Español](README_es.md)
+🇬🇧 [English](README.md) · 🇪🇸 [Español](README_es.md)
 
-# Fraud detection — credit card transactions
+# Detección de fraude — transacciones con tarjeta de crédito
 
 Detección de fraude sobre el dataset sintético Sparkov de transacciones con tarjeta de
 crédito: ~1,85 millones de transacciones de 983 tarjetas entre enero de 2019 y diciembre

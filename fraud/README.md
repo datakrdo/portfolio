@@ -1,4 +1,4 @@
-[English](README.md) · [Español](README_es.md)
+🇬🇧 [English](README.md) · 🇪🇸 [Español](README_es.md)
 
 # Fraud detection — credit card transactions
 
