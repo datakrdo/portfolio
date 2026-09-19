@@ -1,80 +1,80 @@
+[English](README.md) · [Español](README_es.md)
+
 # Fraud detection — credit card transactions
 
-Detección de fraude sobre el dataset sintético Sparkov de transacciones con tarjeta de
-crédito: ~1,85 millones de transacciones de 983 tarjetas entre enero de 2019 y diciembre
-de 2020, con prevalencia de fraude de 0,58 % en el período de entrenamiento y 0,39 % en el
-holdout.
+Fraud detection on the synthetic Sparkov credit card transaction dataset: ~1.85 million
+transactions from 983 cards between January 2019 and December 2020, with a fraud
+prevalence of 0.58% in the training period and 0.39% in the holdout.
 
-Dos entregables:
+Two deliverables:
 
-- **[`fraud-portfolio.ipynb`](fraud-portfolio.ipynb)** — notebook autocontenida
-  (no importa `src/`), narrativa en español, ejecutada de punta a punta. Es el recorrido
-  completo: problema, EDA, feature engineering causal, escalera de modelos, la decisión de
-  cómo tratar el desbalance, calibración, y la sección de umbral y dinero.
-- **`src/fraud/`** — paquete productivo instalable con `uv`: carga y split temporal,
-  feature engineering, modelos GPU, evaluación, umbral, orquestador y CLI de entrenamiento
-  y scoring batch.
+- **[`fraud-portfolio.ipynb`](fraud-portfolio.ipynb)** — self-contained notebook
+  (does not import `src/`), executed end to end. The full walkthrough: problem, EDA,
+  causal feature engineering, the model ladder, the imbalance-handling decision,
+  calibration, and the threshold-and-money section.
+- **`src/fraud/`** — installable production package with `uv`: loading and temporal
+  split, feature engineering, GPU models, evaluation, threshold, orchestrator, and a
+  training/batch-scoring CLI.
 
-## Herramientas 🛠️
+## Tools 🛠️
 
 - Python, pandas, NumPy
 - scikit-learn (`Pipeline`, `ColumnTransformer`, `IsotonicRegression`, `DummyClassifier`)
-- XGBoost y LightGBM sobre GPU (`device="cuda"` / `"gpu"`)
-- imbalanced-learn (`SMOTENC`, `RandomUnderSampler`, dentro de `imblearn.Pipeline`)
+- XGBoost and LightGBM on GPU (`device="cuda"` / `"gpu"`)
+- imbalanced-learn (`SMOTENC`, `RandomUnderSampler`, inside `imblearn.Pipeline`)
 - SHAP
 - matplotlib, seaborn
 - uv, ruff, pytest, GitHub Actions
 
 ## Skills 🧠
 
-- Ingeniería de features causal (rolling windows y agregados sin fuga temporal)
-- Clasificación con desbalance extremo: PR-AUC, calibración de probabilidades, costo-beneficio
-- Validación temporal para series de eventos (split por fecha, holdout de producción)
-- Optimización de umbral de decisión por valor esperado en dólares
-- Explicabilidad de modelos (SHAP) y comunicación de resultados a una audiencia no técnica
-- Empaquetado de un proyecto de ML como paquete instalable con CLI, tests y CI
+- Causal feature engineering (rolling windows and aggregates with no temporal leakage)
+- Classification under extreme imbalance: PR-AUC, probability calibration, cost-benefit
+- Temporal validation for event time series (date-based split, production holdout)
+- Decision-threshold optimization by expected dollar value
+- Model explainability (SHAP) and communicating results to a non-technical audience
+- Packaging an ML project as an installable package with CLI, tests, and CI
 
-## Decisiones de diseño 🧭
+## Design decisions 🧭
 
-- **PR-AUC contra prevalencia, nunca accuracy.** Un clasificador constante que nunca marca
-  fraude saca 99,4 % de accuracy en este dataset. `src/fraud/evaluation.py::binary_metrics`
-  reporta PR-AUC y su lift sobre la prevalencia real (0,58 % train / 0,39 % holdout), no
-  contra el 0,5 de un ranking aleatorio.
-- **Split temporal, no aleatorio.** El modelo puntúa transacciones futuras con datos del
-  pasado; partir al azar mezclaría transacciones futuras de una tarjeta en el conjunto de
-  entrenamiento de esa misma tarjeta. `src/fraud/data.py::temporal_split` corta por fecha, y
-  `fraudTest.csv` se trata como el holdout natural del dataset, intocado hasta la evaluación
-  final.
-- **Features de velocidad causales.** La hora 22–23 h muestra un lift de 5× sobre la
-  prevalencia base, y la mediana de segundos desde la transacción previa de la tarjeta es
-  4.908 en fraude contra 16.623 en legítimas — la ráfaga es señal real. Toda esa familia de
-  features (`src/fraud/features.py`) se calcula con
-  `groupby("cc_num").rolling(window, on=..., closed="left")`, que excluye la fila actual: un
-  agregado que se filtra a sí mismo infla el PR-AUC de validación sin que el modelo haya
-  aprendido nada generalizable.
-- **`distance_km` se construye y se descarta.** `merch_lat`/`merch_long` en este dataset se
-  generan de forma uniforme alrededor del domicilio del titular, así que la distancia
-  titular↔comercio no discrimina (≈76 km en ambas clases). Se deja documentada como
-  resultado negativo, no se omite.
-- **Ponderación de la pérdida, no SMOTE.** `scale_pos_weight` (boosteados) /
-  `class_weight="balanced"` (LogReg) en vez de resamplear. Motivos: (1) 9.651 fraudes
-  absolutos no es un problema de escasez de etiquetas; (2) SMOTE interpola en un espacio con
-  categóricas de alta cardinalidad (`merchant`, 693 niveles) donde la distancia euclídea no
-  significa nada; (3) ponderar no toca los datos, por lo que no puede filtrar validación;
-  (4) resamplear distorsiona las probabilidades, y este proyecto necesita probabilidades
-  calibradas para el cálculo de ahorro en dólares. La notebook mide, no sólo afirma: compara
-  PR-AUC de validación entre no-tratar / ponderar / SMOTENC / undersampling antes de fijar la
-  decisión.
-- **Umbral por ahorro neto en dólares, congelado en validación.** `src/fraud/threshold.py`
-  maximiza `Σ amt[TP] − FP_COST·|FP| − Σ amt[FN]` sobre la validación, nunca sobre el
-  holdout — elegirlo ahí sería la misma fuga que tunear cualquier hiperparámetro contra el
-  conjunto de evaluación final.
+- **PR-AUC against prevalence, never accuracy.** A constant classifier that never flags
+  fraud scores 99.4% accuracy on this dataset. `src/fraud/evaluation.py::binary_metrics`
+  reports PR-AUC and its lift over the real prevalence (0.58% train / 0.39% holdout), not
+  against the 0.5 of a random ranking.
+- **Temporal split, not random.** The model scores future transactions with data from the
+  past; a random split would mix a card's future transactions into that same card's
+  training set. `src/fraud/data.py::temporal_split` cuts by date, and `fraudTest.csv` is
+  treated as the dataset's natural holdout, untouched until final evaluation.
+- **Causal velocity features.** The 22–23h hour shows a 5x lift over the base prevalence,
+  and the median seconds since a card's previous transaction is 4,908 in fraud versus
+  16,623 in legitimate transactions — the burst is real signal. That whole family of
+  features (`src/fraud/features.py`) is computed with
+  `groupby("cc_num").rolling(window, on=..., closed="left")`, which excludes the current
+  row: an aggregate that leaks into itself inflates validation PR-AUC without the model
+  having learned anything generalizable.
+- **`distance_km` is built and discarded.** `merch_lat`/`merch_long` in this dataset are
+  generated uniformly around the cardholder's home, so cardholder-to-merchant distance
+  doesn't discriminate (≈76 km in both classes). It's kept documented as a negative
+  result, not omitted.
+- **Loss weighting, not SMOTE.** `scale_pos_weight` (boosted models) / `class_weight="balanced"`
+  (LogReg) instead of resampling. Reasons: (1) 9,651 absolute fraud cases isn't a
+  label-scarcity problem; (2) SMOTE interpolates in a space with high-cardinality
+  categoricals (`merchant`, 693 levels) where Euclidean distance is meaningless; (3)
+  weighting doesn't touch the data, so it can't leak into validation; (4) resampling
+  distorts probabilities, and this project needs calibrated probabilities for the dollar
+  savings calculation. The notebook measures, not just asserts: it compares validation
+  PR-AUC across no-treatment / weighting / SMOTENC / undersampling before locking in the
+  decision.
+- **Threshold by net dollar savings, frozen on validation.** `src/fraud/threshold.py`
+  maximizes `Σ amt[TP] − FP_COST·|FP| − Σ amt[FN]` over validation, never over the
+  holdout — choosing it there would be the same leakage as tuning any hyperparameter
+  against the final evaluation set.
 
 ## Quick start 🚀
 
-`data/` está en `.gitignore`: descargar el dataset Sparkov desde
-[Kaggle](https://www.kaggle.com/datasets/kartik2112/fraud-detection) y colocar
-`fraudTrain.csv`/`fraudTest.csv` en `data/raw/` antes de correr lo siguiente.
+`data/` is in `.gitignore`: download the Sparkov dataset from
+[Kaggle](https://www.kaggle.com/datasets/kartik2112/fraud-detection) and place
+`fraudTrain.csv`/`fraudTest.csv` in `data/raw/` before running the following.
 
 ```bash
 uv sync --all-extras
@@ -83,35 +83,35 @@ uv run pytest -q
 
 uv run fraud train --data data/raw/fraudTrain.csv --model xgboost --out models/
 uv run fraud evaluate --model models/xgboost.joblib --data data/raw/fraudTest.csv
-uv run fraud score transacciones.csv --model models/xgboost.joblib -o scores.csv
+uv run fraud score transactions.csv --model models/xgboost.joblib -o scores.csv
 ```
 
-`uv run jupyter nbconvert --execute --inplace fraud-portfolio.ipynb` reproduce la
-notebook desde cero.
+`uv run jupyter nbconvert --execute --inplace fraud-portfolio.ipynb` reproduces the
+notebook from scratch.
 
-## Diseño por módulo 📦
+## Module design 📦
 
-- `src/fraud/data.py` — carga, valida esquema, castea `cc_num` a string, ordena
-  causalmente, y corta `fraudTrain.csv` en train/validación por fecha (`TemporalSplit`).
-- `src/fraud/features.py` — `build_features`, pura y sin estado: features temporales,
-  monto, velocidad causal por tarjeta, novedad de comercio/categoría, y `distance_km`.
-- `src/fraud/modeling.py` — registro `MODEL_SPECS` (`dummy`, `logreg`, `lightgbm`,
-  `xgboost`), con los dos últimos usando GPU (`device="cuda"`/`"gpu"`) y degradación
-  elegante si los extras `[gpu]` no están instalados.
-- `src/fraud/evaluation.py` — PR-AUC contra prevalencia, precision@k, matriz de confusión.
-- `src/fraud/threshold.py` — barrido de umbral vectorizado, ahorro neto, análisis marginal
-  y sensibilidad a `FP_COST`.
-- `src/fraud/pipeline.py` — orquestador único: split → features → fit → calibración
-  isotónica sobre validación → umbral congelado. `FraudModel` empaqueta las tres cosas
-  juntas, porque un umbral sin su modelo no es una decisión reproducible.
-- `src/fraud/cli.py` — subcomandos `train` / `score` / `evaluate`.
-- `src/fraud/explainability.py` — SHAP sobre el modelo final, detrás del extra `[shap]`.
+- `src/fraud/data.py` — loads, validates schema, casts `cc_num` to string, sorts
+  causally, and cuts `fraudTrain.csv` into train/validation by date (`TemporalSplit`).
+- `src/fraud/features.py` — `build_features`, pure and stateless: temporal features,
+  amount, causal per-card velocity, merchant/category novelty, and `distance_km`.
+- `src/fraud/modeling.py` — `MODEL_SPECS` registry (`dummy`, `logreg`, `lightgbm`,
+  `xgboost`), the last two using GPU (`device="cuda"`/`"gpu"`) with graceful degradation
+  if the `[gpu]` extras aren't installed.
+- `src/fraud/evaluation.py` — PR-AUC against prevalence, precision@k, confusion matrix.
+- `src/fraud/threshold.py` — vectorized threshold sweep, net savings, marginal analysis,
+  and `FP_COST` sensitivity.
+- `src/fraud/pipeline.py` — single orchestrator: split → features → fit → isotonic
+  calibration on validation → frozen threshold. `FraudModel` packages the three
+  together, because a threshold without its model isn't a reproducible decision.
+- `src/fraud/cli.py` — `train` / `score` / `evaluate` subcommands.
+- `src/fraud/explainability.py` — SHAP on the final model, behind the `[shap]` extra.
 
-## Datos y limitaciones ⚠️
+## Data and limitations ⚠️
 
-Dataset sintético (Sparkov), sin validación externa. Sin datos de dispositivo, sesión ni
-canal de pago. `FP_COST` (costo de revisión manual, USD 4) es una estimación externa al
-dataset — la sección de sensibilidad de la notebook muestra cuánto depende de ella la
-recomendación. 983 tarjetas es una población chica. El modelo no tiene forma de manejar una
-tarjeta sin historial (arranque en frío): ahí las features de velocidad valen cero por
-construcción, no por un error del modelo.
+Synthetic dataset (Sparkov), no external validation. No device, session, or payment
+channel data. `FP_COST` (manual review cost, USD 4) is an estimate external to the
+dataset — the notebook's sensitivity section shows how much the recommendation depends
+on it. 983 cards is a small population. The model has no way to handle a card with no
+history (cold start): velocity features are zero by construction there, not by model
+error.

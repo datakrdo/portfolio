@@ -10,39 +10,39 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Krdo" }]
 dependencies = [
-    "numpy>=2.4",
-    "pandas>=2.2",
-    "scikit-learn>=1.7",
-    "scipy>=1.15",
-    "matplotlib>=3.9",
+    "numpy>=2.5",
+    "pandas>=3.0",
+    "scikit-learn>=1.9",
+    "scipy>=1.18",
+    "matplotlib>=3.11",
     "seaborn>=0.13",
     "joblib>=1.4",
 ]
 
 [project.optional-dependencies]
-gpu = ["xgboost>=2.1", "lightgbm>=4.5"]
-hpo = ["optuna>=4.1"]
-shap = ["shap>=0.46"]
-imb = ["imbalanced-learn>=0.13"]
+gpu = ["xgboost>=3.4", "lightgbm>=4.7"]
+hpo = ["optuna>=5.0"]
+shap = ["shap>=0.52"]
+imb = ["imbalanced-learn>=0.14"]
 dev = [
-    "pytest>=8.3",
-    "ruff>=0.15",
-    "nbconvert>=7.16",
-    "nbformat>=5.10",
+    "pytest>=9.1",
+    "ruff>=0.16",
+    "nbconvert>=7.17",
+    "nbformat>=5.11",
     "jupyter>=1.1",
     "ipykernel>=6.29",
     "ipywidgets>=8.1",
 ]
 all = [
-    "xgboost>=2.1",
-    "lightgbm>=4.5",
-    "optuna>=4.1",
-    "shap>=0.46",
-    "imbalanced-learn>=0.13",
-    "pytest>=8.3",
-    "ruff>=0.15",
-    "nbconvert>=7.16",
-    "nbformat>=5.10",
+    "xgboost>=3.4",
+    "lightgbm>=4.7",
+    "optuna>=5.0",
+    "shap>=0.52",
+    "imbalanced-learn>=0.14",
+    "pytest>=9.1",
+    "ruff>=0.16",
+    "nbconvert>=7.17",
+    "nbformat>=5.11",
     "jupyter>=1.1",
     "ipykernel>=6.29",
     "ipywidgets>=8.1",
