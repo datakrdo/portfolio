@@ -1,3 +1,5 @@
+🇬🇧 [English](README.md) · 🇪🇸 [Español](README_es.md)
+
 # PBC disease-stage modeling 🩺
 
 Production-oriented modeling of the 418-row Mayo Clinic primary biliary cirrhosis (PBC)
@@ -38,7 +40,7 @@ Environment is managed with [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync --all-extras          # creates .venv, installs core + shap + optuna + lgbm + dev
-uv run pytest -q              # 15 tests
+uv run pytest -q              # 21 tests
 uv run ruff check src/ scripts/ tests/
 uv run ruff format --check src/ scripts/ tests/
 ```
@@ -109,9 +111,6 @@ selected only via `TunedThresholdClassifierCV` on training folds, and `Drug` is 
   and the full model comparison.
 - `pbc-portfolio.ipynb` (repo root) — self-contained narrative deliverable; the one
   meant to be read or re-run on its own, without `src/`.
-
-Every executable notebook cell is immediately followed by a short discussion of what the
-output shows, what it means clinically, and what was decided as a result.
 
 ## Skills 🧠
 
