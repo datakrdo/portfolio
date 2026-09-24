@@ -72,7 +72,9 @@ fig_context <- function(context_breakdown) {
     theme_minimal()
 }
 
-#' Shearer vs. the 100+ club, raw rate and era-adjusted rate on the same row.
+#' Shearer vs. the ten highest career scorers, raw rate and era-adjusted rate
+#' on the same row -- the same top-10-by-goals subset the dashboard's
+#' Comparators tab uses (`top10_bands` in `app/app.R`).
 #'
 #' The hollow point is goals per appearance as recorded; the filled one is that
 #' rate divided by the scoring environment of the seasons the player actually
@@ -87,7 +89,9 @@ fig_context <- function(context_breakdown) {
 #' @export
 fig_comparators <- function(historical_table, cfg) {
   ranked <- historical_table |>
-    filter(!is.na(adjusted_goals_per_appearance)) |>
+    filter(!is.na(adjusted_goals_per_90)) |>
+    slice_max(goals, n = 10, with_ties = FALSE) |>
+    select(-adjusted_goals_per_90) |>
     mutate(label = glue::glue("{player} ({goals})")) |>
     arrange(adjusted_goals_per_appearance) |>
     mutate(label = factor(label, levels = label))
@@ -108,7 +112,7 @@ fig_comparators <- function(historical_table, cfg) {
     scale_colour_manual(values = c(`TRUE` = SHEARER_COLOUR, `FALSE` = NEUTRAL_COLOUR), guide = "none") +
     scale_x_continuous(expand = expansion(mult = c(0.02, 0.30))) +
     labs(
-      title = "Era-adjusted scoring rate among the Premier League's 100+ goal scorers",
+      title = "Era-adjusted scoring rate among the ten highest career scorers",
       subtitle = paste(
         "Hollow point: goals per appearance as recorded. Filled point: the same rate divided",
         "by\nthe league's goals per match over that player's own seasons. Career goals in",

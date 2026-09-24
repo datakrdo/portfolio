@@ -31,11 +31,11 @@ test_config <- list(project = list(clubs = c("Blackburn Rovers", "Newcastle Unit
                                    player_name = "Alan Shearer"))
 
 historical_fixture <- tibble::tribble(
-  ~player,          ~goals, ~appearances, ~highlight, ~goals_per_appearance, ~era_index, ~adjusted_goals_per_appearance, ~seasons_matched,
-  "Alan Shearer",   260,    441,          TRUE,       260 / 441,             0.967,      (260 / 441) / 0.967,            13,
-  "Harry Kane",     213,    320,          TRUE,       213 / 320,             1.021,      (213 / 320) / 1.021,            12,
-  "Wayne Rooney",   208,    491,          TRUE,       208 / 491,             0.987,      (208 / 491) / 0.987,            17,
-  "Sadio Mané",     111,    355,          FALSE,      111 / 355,             1.010,      (111 / 355) / 1.010,            8
+  ~player,          ~goals, ~appearances, ~highlight, ~goals_per_appearance, ~era_index, ~adjusted_goals_per_appearance, ~seasons_matched, ~adjusted_goals_per_90,
+  "Alan Shearer",   260,    441,          TRUE,       260 / 441,             0.967,      (260 / 441) / 0.967,            13,               0.61,
+  "Harry Kane",     213,    320,          TRUE,       213 / 320,             1.021,      (213 / 320) / 1.021,            12,               0.65,
+  "Wayne Rooney",   208,    491,          TRUE,       208 / 491,             0.987,      (208 / 491) / 0.987,            17,               0.47,
+  "Sadio Mané",     111,    355,          FALSE,      111 / 355,             1.010,      (111 / 355) / 1.010,            8,                0.42
 )
 
 shots_fixture <- tibble::tribble(
@@ -78,15 +78,29 @@ test_that("fig_comparators returns a ggplot with no goals-per-90 column present 
   expect_equal(nrow(p$data), nrow(historical_fixture))
 })
 
-test_that("fig_comparators drops players with no measurable era index rather than erroring", {
+test_that("fig_comparators drops players with no verified goals-per-90 rather than erroring", {
   fixture_with_na <- bind_rows(
     historical_fixture,
     tibble::tibble(player = "Unmeasurable", goals = 100, appearances = 200,
                     highlight = FALSE, goals_per_appearance = 0.5, era_index = NA_real_,
-                    adjusted_goals_per_appearance = NA_real_, seasons_matched = 0)
+                    adjusted_goals_per_appearance = NA_real_, seasons_matched = 0,
+                    adjusted_goals_per_90 = NA_real_)
   )
   p <- fig_comparators(fixture_with_na, test_config)
   expect_equal(nrow(p$data), nrow(historical_fixture))
+})
+
+test_that("fig_comparators keeps only the top 10 by career goals", {
+  padded <- bind_rows(
+    historical_fixture,
+    tibble::tibble(player = paste0("Extra", 1:8), goals = seq(90, 20, length.out = 8),
+                    appearances = 200, highlight = FALSE, goals_per_appearance = 0.5,
+                    era_index = 1, adjusted_goals_per_appearance = 0.5, seasons_matched = 8,
+                    adjusted_goals_per_90 = 0.5)
+  )
+  p <- fig_comparators(padded, test_config)
+  expect_equal(nrow(p$data), 10)
+  expect_true(all(c("Alan Shearer", "Harry Kane", "Wayne Rooney") %in% p$data$player))
 })
 
 test_that("fig_statsbomb_shots renders on a pitch and reports the shot count in its title", {

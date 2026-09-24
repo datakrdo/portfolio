@@ -2,7 +2,9 @@
 % Please edit documentation in R/11_figures.R
 \name{fig_comparators}
 \alias{fig_comparators}
-\title{Shearer vs. the 100+ club, raw rate and era-adjusted rate on the same row.}
+\title{Shearer vs. the ten highest career scorers, raw rate and era-adjusted rate
+on the same row -- the same top-10-by-goals subset the dashboard's
+Comparators tab uses (\code{top10_bands} in \code{app/app.R}).}
 \usage{
 fig_comparators(historical_table, cfg)
 }

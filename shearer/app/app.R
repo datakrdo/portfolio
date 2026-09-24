@@ -153,7 +153,14 @@ app_theme <- bs_theme(version = 5, preset = "shiny", primary = SHEARER_COLOUR,
   bs_add_rules(sass::sass_file(file.path(WWW, "styles.scss")))
 
 ui <- page_navbar(
-  title = "Alan Shearer — the Premier League's all-time top scorer",
+  title = tags$span(
+    tags$img(src = "blackburn.png", height = "20px", style = "margin-right: 6px; vertical-align: middle;",
+             alt = "Blackburn Rovers crest"),
+    "Alan Shearer",
+    tags$img(src = "newcastle.svg", height = "20px", style = "margin-left: 6px; margin-right: 8px; vertical-align: middle;",
+             alt = "Newcastle United crest"),
+    "— the Premier League's all-time top scorer"
+  ),
   theme = app_theme,
   fillable = FALSE,
 

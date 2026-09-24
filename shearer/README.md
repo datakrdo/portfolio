@@ -55,7 +55,7 @@ rather than leaving a reader to infer it.
 
 ## Live demo 🌐
 
-[shearer-260.shinyapps.io](https://datakrdo.shinyapps.io/shearer-260/) — no
+[shearer-260 on shinyapps.io](https://8o0sz0-federico-dignani.shinyapps.io/shearer-260/) — no
 install required. Free tier: sleeps when idle, first load can take a few
 seconds to wake up.
 
@@ -79,7 +79,7 @@ boundary, `R/13_dataset.R` — see below), so it runs the same way whether the
 pipeline was just rebuilt or last run weeks ago.
 
 ```r
-devtools::test()   # 257 tests, no network calls
+devtools::test()   # 259 tests, no network calls
 ```
 
 Reference documentation (roxygen2): `man/`, or `devtools::document()` +
@@ -218,22 +218,31 @@ graph LR
 ## Data provenance and limitations 📎
 
 Five sources, never merged into a single number without cross-checking:
-FBref (goal events, real per-match minutes — fetched via the Internet
-Archive, since fbref.com itself blocks direct requests behind a Cloudflare
-challenge; see `THIRD_PARTY_NOTICES.md`), the Transfermarkt goal-by-goal log
-(goal `type` only, left-joined by season/opponent/minute), Wikipedia
-(infoboxes, per-match tables, all-time list), football-data.co.uk (results,
-league scoring environment, 1993-94 onward), and StatsBomb/Hudl open data (2
-Shearer shots, both from Arsenal's 2003/04 matches — shown as evidence of
-the limit, not a shot map). 1992-93 has no league-wide scoring-environment
-source and is declared absent, not backfilled. Goal `type` carries an honest
-"unknown" bucket for anything that doesn't match a Transfermarkt row, not
-imputed. Real minutes (and so goals/90 and minutes per goal or assist) are
-only available for the comparators pinned in `config.yaml`'s
-`sources.fbref.comparator_player_ids` — every other player on the all-time
-list keeps `goals_per_90` and `minutes_per_goal_or_assist` as `NA`, a
-declared gap. The era adjustment uses career-span years from Wikipedia's
-all-time table, which can be off by a season at either edge for a player who
-didn't play every season in that span. Full detail: `docs/validation.md`,
-`docs/methodology.md`, `docs/data_dictionary.md`, `docs/coverage.md`,
-`docs/limitations.md`.
+
+- **FBref** — goal events, real per-match minutes. Fetched via the Internet
+  Archive, since fbref.com itself blocks direct requests behind a Cloudflare
+  challenge (see `THIRD_PARTY_NOTICES.md`).
+- **Transfermarkt** — the goal-by-goal log, goal `type` only, left-joined by
+  season/opponent/minute.
+- **Wikipedia** — season infoboxes, per-match tables, the all-time scorers list.
+- **football-data.co.uk** — match results and the league scoring environment,
+  1993-94 onward.
+- **StatsBomb/Hudl** — open shot data: 2 Shearer shots, both from Arsenal's
+  2003/04 matches, shown as evidence of the limit, not a shot map.
+
+Declared gaps, none silently filled:
+
+- **1992-93** has no league-wide scoring-environment source and is left out of
+  the era adjustment, not backfilled.
+- **Goal `type`** carries an honest "unknown" bucket for anything that doesn't
+  match a Transfermarkt row, not imputed.
+- **Real minutes** (and so `goals_per_90` and minutes per goal or assist) are
+  only available for the comparators pinned in `config.yaml`'s
+  `sources.fbref.comparator_player_ids` — every other player on the all-time
+  list keeps those columns as `NA`.
+- **The era adjustment** uses career-span years from Wikipedia's all-time
+  table, which can be off by a season at either edge for a player who didn't
+  play every season in that span.
+
+Full detail: `docs/validation.md`, `docs/methodology.md`,
+`docs/data_dictionary.md`, `docs/coverage.md`, `docs/limitations.md`.
