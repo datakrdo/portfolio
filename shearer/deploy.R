@@ -7,6 +7,14 @@
 #   rsconnect::setAccountInfo(name = ..., token = ..., secret = ...)
 #   remotes::install_github("datakrdo/portfolio", subdir = "shearer")
 
+# CI installs packages from the RSPM binary mirror under the repo name
+# "RSPM" (via setup-r's use-public-rspm); rsconnect needs that name mapped
+# to a real URL when it builds the manifest, or the server-side rebuild
+# tries to fetch from the literal string "RSPM" and fails.
+if (nzchar(Sys.getenv("RSPM"))) {
+  options(repos = c(getOption("repos"), RSPM = Sys.getenv("RSPM")))
+}
+
 # app.R falls back to ROOT = "." when ../data/processed doesn't exist, so
 # app.R is placed at the bundle root (not nested under app/) with data/,
 # config/, docs/ as siblings -- matching that fallback layout.
