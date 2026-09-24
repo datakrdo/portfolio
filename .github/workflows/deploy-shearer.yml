@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "shearer/**"
+      - ".github/workflows/deploy-shearer.yml"
   workflow_dispatch: {}
 
 jobs:
@@ -13,32 +14,62 @@ jobs:
     defaults:
       run:
         working-directory: shearer
+    env:
+      # shearer/.Rprofile auto-runs renv on every Rscript call. We restore
+      # deps ourselves below (not via the project's own renv activation), so
+      # disable the autoloader to avoid its bootstrap noise/failures.
+      RENV_CONFIG_AUTOLOADER_ENABLED: false
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned to match renv.lock's R version -- CI previously ran on the
+      # "release" R (4.6.1) while renv.lock pins packages built for 4.5.2;
+      # R 4.6 dropped internals (e.g. SETLENGTH) that those package
+      # binaries/sources depended on, breaking dyn.load for ~60 packages.
       - uses: r-lib/actions/setup-r@v2
         with:
-          use-public-rspm: true
+          r-version: "4.5.2"
+          use-public-rspm: false
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - name: Install system libraries the app's R packages need to compile
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake git libcurl4-openssl-dev libfontconfig1-dev \
+            libfreetype6-dev libgit2-dev libglpk-dev libicu-dev \
+            libnode-dev libpng-dev libssl-dev libx11-dev libxml2-dev \
+            make pandoc
+
+      - name: Cache installed R packages
+        uses: actions/cache@v4
         with:
-          working-directory: shearer
-          extra-packages: |
-            any::rsconnect
-            any::remotes
-            any::bslib
-            any::shiny
-            any::plotly
-            any::reactable
-            any::thematic
+          path: ${{ env.R_LIBS_USER }}
+          key: rlibs-${{ hashFiles('shearer/renv.lock') }}
 
-      # RSPM binaries tag installed packages with Repository: RSPM, and
-      # shinyapps.io's server can't resolve that when it needs to rebuild a
-      # package from source (it treats "RSPM" as a literal URL). The
-      # packages are identical either way, so just relabel them as CRAN,
-      # which the server does handle correctly.
-      - name: Relabel RSPM packages as CRAN so shinyapps.io can rebuild them
-        run: Rscript ../.github/scripts/relabel-rspm-as-cran.R
+      # Plain install.packages() (not renv::restore()) straight into
+      # R_LIBS_USER: rsconnect refuses to trust the Repository field of
+      # packages it detects were installed from source within an renv
+      # project ("packages installed from source within an renv project are
+      # not associated with repositories"), which breaks deployApp's
+      # manifest even when Repository == CRAN. Plain install.packages()
+      # avoids that renv fingerprinting entirely. Matches how the user's
+      # local manual deploys install packages, which have always worked.
+      - name: Install the app's runtime dependencies from CRAN
+        run: |
+          Rscript -e '
+          lib <- Sys.getenv("R_LIBS_USER")
+          install.packages(
+            c(
+              "arrow", "chromote", "dplyr", "fs", "ggplot2", "ggsoccer",
+              "glue", "gt", "httr2", "jsonlite", "knitr", "pointblank",
+              "purrr", "readr", "rlang", "rvest", "S7", "scales", "stringr",
+              "tibble", "tidyr", "xml2", "yaml", "bslib", "shiny", "plotly",
+              "reactable", "thematic", "remotes", "rsconnect"
+            ),
+            repos = "https://cloud.r-project.org",
+            lib = lib
+          )
+          '
 
       - name: Install shearer from GitHub (so shinyapps.io can rebuild it server-side)
         env:
