@@ -1,0 +1,14 @@
+^app$
+^config$
+^data$
+^docs$
+^output$
+^_targets$
+^_targets\.R$
+^_targets\.yaml$
+^renv$
+^renv\.lock$
+^\.Rprofile$
+^THIRD_PARTY_NOTICES\.md$
+^\.chrome-profile$
+^deploy\.R$

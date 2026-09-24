@@ -1,0 +1,32 @@
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+renv/library/
+renv/local/
+renv/staging/
+renv/python/
+renv/sandbox/
+
+# raw scraped/downloaded data is never committed — see data/raw/README.md
+data/raw/*
+!data/raw/README.md
+!data/raw/source_manifest.csv
+
+# generated outputs are reproducible from the pipeline, but the figures are
+# committed so the README image renders on GitHub without a rebuild
+output/tables/*
+!output/tables/.gitkeep
+
+reports/*.html
+reports/*_files/
+
+_targets/
+app/renv/
+rsconnect/
+
+.DS_Store
+
+# persistent Chrome profile for the fbref.com chromote fallback -- keeps the
+# Cloudflare clearance cookie across runs instead of re-solving it every time
+.chrome-profile/

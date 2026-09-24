@@ -1,0 +1,49 @@
+Package: shearer
+Title: Alan Shearer Goal-Scoring Analysis Pipeline
+Version: 0.1.0
+Authors@R: person("Krdo", email = "jcbatman@gmail.com", role = c("aut", "cre"))
+Description: Ingests, validates and analyses Alan Shearer's Premier League
+    goal-scoring record from Transfermarkt, Wikipedia and StatsBomb, and
+    powers the accompanying Shiny dashboard.
+License: Unlimited
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1)
+Imports:
+    arrow,
+    chromote,
+    dplyr,
+    fs,
+    ggplot2,
+    ggsoccer,
+    glue,
+    gt,
+    httr2,
+    jsonlite,
+    knitr,
+    pointblank,
+    purrr,
+    readr,
+    rlang,
+    rvest,
+    S7,
+    scales,
+    stringr,
+    tibble,
+    tidyr,
+    xml2,
+    yaml
+Suggests:
+    bslib,
+    devtools,
+    plotly,
+    reactable,
+    roxygen2,
+    shiny,
+    targets,
+    testthat (>= 3.0.0),
+    thematic,
+    withr
+Config/testthat/edition: 3

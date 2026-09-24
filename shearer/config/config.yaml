@@ -1,0 +1,176 @@
+# All analytical thresholds live here — never hardcode a number the report depends on.
+# See docs/methodology.md for the reasoning behind each source and each cutoff.
+
+project:
+  random_seed: 42
+  player_name: "Alan Shearer"
+  competition: "Premier League"
+  season_start: "1992-1993"
+  season_end: "2005-2006"
+  clubs: ["Blackburn Rovers", "Newcastle United"]
+
+paths:
+  raw: "data/raw"
+  interim: "data/interim"
+  processed: "data/processed"
+  manifest: "data/raw/source_manifest.csv"
+  docs: "docs"
+
+# rate limiting — one polite request at a time, never hammer a source
+fetch:
+  time_pause_seconds: 3
+  user_agent: "shearer-premier-league-portfolio-research/1.0 (personal, non-commercial)"
+  max_retries: 3
+
+sources:
+  football_data_co_uk:
+    base_url: "https://www.football-data.co.uk/mmz4281"
+    # Extends well past Shearer's 2005-06 retirement on purpose: the era
+    # adjustment in R/10 needs the league-wide scoring environment for every
+    # comparator's career, and the all-time 100+ list runs to the present day.
+    # `matches` is filtered back to Shearer's 14 seasons in build_matches().
+    season_codes: ["9394", "9495", "9596", "9697", "9798", "9899",
+                    "9900", "0001", "0102", "0203", "0304", "0405", "0506",
+                    "0607", "0708", "0809", "0910", "1011", "1112", "1213",
+                    "1314", "1415", "1516", "1617", "1718", "1819", "1920",
+                    "2021", "2122", "2223", "2324", "2425"]
+    # 1992-93 is not published by football-data.co.uk (HTTP 404, confirmed).
+    # That single season comes from wikipedia_season_results instead.
+    league_code: "E0"
+  wikipedia_season_results:
+    api: "https://en.wikipedia.org/w/api.php"
+    seasons: ["1992–93", "1993–94", "1994–95", "1995–96", "1996–97",
+              "1997–98", "1998–99", "1999–2000", "2000–01", "2001–02",
+              "2002–03", "2003–04", "2004–05", "2005–06"]
+    page_template: "{season} FA Premier League"
+  wikipedia_all_time_scorers:
+    page: "List of footballers with 100 or more Premier League goals"
+  transfermarkt_goal_log:
+    # ID verified 2026-09-10: 3110 is Alan Shearer. 3163 (used in a prior draft
+    # of this project) resolves to a different player — do not reuse it.
+    # No longer the primary goal log (see sources.fbref) — kept as a
+    # cross-check and as the sole source of goal_type (FBref doesn't
+    # distinguish header/free kick/etc).
+    url: "https://www.transfermarkt.com/alan-shearer/alletore/spieler/3110"
+    max_requests: 1  # ToS forbids systematic scraping; fetch once, cache forever
+  fbref:
+    # fbref.com itself returns HTTP 403 (Cloudflare Managed Challenge) on the
+    # very first request — confirmed 2026-09-20, independent of user agent.
+    # worldfootballR (the R package that used to wrap this site) is archived
+    # (2025-09-18) and TLS impersonation doesn't clear the challenge either.
+    # Every fbref.com page below is instead fetched through the Wayback
+    # Machine (cache_fetch_wayback(), R/01_sources.R) — see THIRD_PARTY_NOTICES.md.
+    base_url: "https://fbref.com"
+    player_id: "438b3a51"  # Alan Shearer, confirmed 2026-09-20
+    player_url_template: "https://fbref.com/en/players/{player_id}/{slug}"
+    matchlog_url_template: "https://fbref.com/en/players/{player_id}/matchlogs/{season}/{slug}-Match-Logs"
+    season_stats_url_template: "https://fbref.com/en/comps/9/{season}/{season}-Premier-League-Stats"
+    seasons: ["1992-1993", "1993-1994", "1994-1995", "1995-1996", "1996-1997",
+              "1997-1998", "1998-1999", "1999-2000", "2000-2001", "2001-2002",
+              "2002-2003", "2003-2004", "2004-2005", "2005-2006"]
+    cdx_api: "http://web.archive.org/cdx/search/cdx"
+    attribution: "Data from Sports Reference / FBref (fbref.com). Fetched via
+      the Internet Archive Wayback Machine wherever a snapshot exists; the
+      small subset of pages the Archive never captured is fetched live
+      through a real (non-headless) Chrome session (see
+      cache_fetch_chromote(), R/01_sources.R) at a single, gated request rate,
+      consistent with Sports Reference's bot policy of no more than 10
+      requests/minute."
+    comparator_player_ids:
+      # Resolved once (Shearer/Henry/Kane via fbref_player_ids() against an
+      # archived season-stats page; the rest via each player's own FBref page
+      # URL) and pinned here so a rerun never depends on lookup-page layout.
+      # Covers the ten highest career scorers on the all-time 100+ list.
+      "Alan Shearer": "438b3a51"
+      "Harry Kane": "21a66f6a"
+      "Wayne Rooney": "f07be45a"
+      "Mohamed Salah": "e342ad68"
+      "Andy Cole": "b6638a2c"
+      "Sergio Agüero": "4d034881"
+      "Frank Lampard": "268df6b1"
+      "Thierry Henry": "c0c5ee74"
+      "Robbie Fowler": "7cd34266"
+      "Jermain Defoe": "f1e8372d"
+  hudl_open_data:
+    # formerly statsbomb/open-data; Hudl acquired StatsBomb. Coverage confirmed
+    # identical between the two repos as of 2026-09-10.
+    base_url: "https://raw.githubusercontent.com/hudl/open-data/master"
+    competition_id: 2   # Premier League
+    season_id: 44        # 2003/2004 — the only Shearer-era season with event coordinates,
+                          # and only for Arsenal's 38 matches (StatsBomb's release scope)
+    attribution: "Data from StatsBomb / Hudl. Free for research and non-commercial use;
+      must credit StatsBomb per repository terms."
+
+club_name_lookup:
+  # Canonical name -> every alias seen across sources, so normalization is one
+  # table lookup instead of scattered case_when()s. football-data.co.uk uses
+  # short names; Transfermarkt/Wikipedia use full names. Only clubs whose
+  # short/full forms actually differ need an entry — anything absent from this
+  # table is assumed identical across sources and passed through unchanged
+  # (see normalize_club_name()'s fallback in R/05_build_matches.R).
+  "Blackburn Rovers": ["Blackburn", "Blackburn Rovers"]
+  "Newcastle United": ["Newcastle", "Newcastle United", "Newcastle Utd"]
+  "Manchester City": ["Man City", "Manchester City"]
+  "Manchester United": ["Man United", "Manchester United", "Man Utd", "Manchester Utd"]
+  "Tottenham Hotspur": ["Tottenham", "Tottenham Hotspur", "Spurs"]
+  "Sheffield United": ["Sheffield United", "Sheffield Utd", "Sheff Utd"]
+  "Sheffield Wednesday": ["Sheffield Wednesday", "Sheffield Weds", "Sheff Wed"]
+  "Oldham Athletic": ["Oldham", "Oldham Athletic"]
+  "Leeds United": ["Leeds", "Leeds United"]
+  "Swindon Town": ["Swindon", "Swindon Town"]
+  "Wimbledon": ["Wimbledon", "Wimbledon FC"]
+  "Nottingham Forest": ["Nott'm Forest", "Nottingham Forest", "Nottingham"]
+  "West Bromwich Albion": ["West Brom", "West Bromwich Albion"]
+  "West Ham United": ["West Ham", "West Ham United"]
+  "Wolverhampton Wanderers": ["Wolves", "Wolverhampton Wanderers"]
+  "Queens Park Rangers": ["QPR", "Queens Park Rangers"]
+  "Bolton Wanderers": ["Bolton", "Bolton Wanderers"]
+  "Wigan Athletic": ["Wigan", "Wigan Athletic"]
+  "Birmingham City": ["Birmingham", "Birmingham City"]
+  "Leicester City": ["Leicester", "Leicester City"]
+  "Charlton Athletic": ["Charlton", "Charlton Athletic", "Charlton Ath"]
+  "Coventry City": ["Coventry", "Coventry City"]
+  "Derby County": ["Derby", "Derby County"]
+  "Norwich City": ["Norwich", "Norwich City"]
+  "Portsmouth": ["Portsmouth", "Portsmouth FC"]
+  "Aston Villa": ["Aston Villa", "Villa"]
+  "Ipswich Town": ["Ipswich", "Ipswich Town"]
+  "Bradford City": ["Bradford", "Bradford City"]
+
+context_classification:
+  late_goal_minute: 75
+  close_margin_abs: 1
+
+comparators:
+  contemporaries:
+    # Derived per-season from each "<season> FA Premier League" article's own
+    # "Top scorers" table — nobody hand-picks who's in this list.
+    top_n: 10
+  historical:
+    # From wikipedia_all_time_scorers; every player with 100+ PL goals is
+    # eligible for the list itself. `highlight` and the FBref comparator set
+    # above are both the same ten highest career scorers on that list.
+    highlight: ["Alan Shearer", "Harry Kane", "Wayne Rooney", "Mohamed Salah",
+                "Andy Cole", "Sergio Agüero", "Frank Lampard", "Thierry Henry",
+                "Robbie Fowler", "Jermain Defoe"]
+
+goal_type_taxonomy:
+  # Transfermarkt "Type of goal" free-text values mapped to the standard vocabulary.
+  # "Not reported" stays unknown — it is not imputed.
+  open_play: ["Right-footed shot", "Left-footed shot", "Header", "Tap-in",
+              "Long distance kick", "Solo run", "Deflected shot on goal"]
+  penalty: ["Penalty", "Penalty rebound", "Penalty Kick"]
+  free_kick: ["Direct free kick"]
+  unknown: ["Not reported"]
+
+validation:
+  expected_total_goals: 260
+  expected_total_appearances: 441
+  expected_club_split:
+    "Blackburn Rovers": 112
+    "Newcastle United": 148
+  # Sum of per-match `minutes` across the 441 FBref-verified PL appearances
+  # (Phase 0 probe, 2026-09-20); cross-checked against FBref's own
+  # per-season minutes total on the player page (off by 8 minutes / 0.02%,
+  # a source data-entry quirk, declared in docs/validation.md, not corrected).
+  expected_total_minutes: 38207
