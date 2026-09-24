@@ -13,53 +13,32 @@ jobs:
     defaults:
       run:
         working-directory: shearer
-    env:
-      RENV_CONFIG_SANDBOX_ENABLED: false
-      RENV_PATHS_LIBRARY: ${{ github.workspace }}/renv-lib
-      # RSPM binaries tag installed packages with Repository: RSPM, which
-      # shinyapps.io's server can't resolve when it needs to build a
-      # package from source (this broke a deploy on thematic). Plain CRAN
-      # records Repository: CRAN, which the server handles correctly.
-      RENV_CONFIG_REPOS_OVERRIDE: https://cloud.r-project.org
     steps:
       - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-r@v2
         with:
-          # setup-r@v2 otherwise sets RENV_CONFIG_REPOS_OVERRIDE/RSPM env vars
-          # itself, which override our own CRAN override below in later steps.
-          use-public-rspm: false
+          use-public-rspm: true
 
-      - name: Install system libraries the app's R packages need to compile
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake git libcurl4-openssl-dev libfontconfig1-dev \
-            libfreetype6-dev libgit2-dev libglpk-dev libicu-dev \
-            libnode-dev libpng-dev libssl-dev libx11-dev libxml2-dev \
-            make pandoc
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: shearer
+          extra-packages: |
+            any::rsconnect
+            any::remotes
+            any::bslib
+            any::shiny
+            any::plotly
+            any::reactable
+            any::thematic
 
-      # renv's own bootstrap install (of the renv package itself, distinct
-      # from RENV_PATHS_LIBRARY which only covers the project library) still
-      # falls back to /usr/lib/R/site-library, which doesn't exist on this
-      # runner's R install and isn't writable by default.
-      - name: Ensure the base R system library exists and is writable
-        run: |
-          sudo mkdir -p /usr/lib/R/site-library
-          sudo chown -R "$(whoami)" /usr/lib/R/site-library
-
-      - name: Restore the app's runtime dependencies from CRAN
-        run: |
-          Rscript -e '
-          renv::restore(packages = c(
-            "arrow", "chromote", "dplyr", "fs", "ggplot2", "ggsoccer",
-            "glue", "gt", "httr2", "jsonlite", "knitr", "pointblank",
-            "purrr", "readr", "rlang", "rvest", "S7", "scales", "stringr",
-            "tibble", "tidyr", "xml2", "yaml", "bslib", "shiny", "plotly",
-            "reactable", "thematic", "remotes"
-          ), prompt = FALSE)
-          install.packages("rsconnect", repos = "https://cloud.r-project.org")
-          '
+      # RSPM binaries tag installed packages with Repository: RSPM, and
+      # shinyapps.io's server can't resolve that when it needs to rebuild a
+      # package from source (it treats "RSPM" as a literal URL). The
+      # packages are identical either way, so just relabel them as CRAN,
+      # which the server does handle correctly.
+      - name: Relabel RSPM packages as CRAN so shinyapps.io can rebuild them
+        run: Rscript ../.github/scripts/relabel-rspm-as-cran.R
 
       - name: Install shearer from GitHub (so shinyapps.io can rebuild it server-side)
         env:
