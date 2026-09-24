@@ -13,6 +13,8 @@ jobs:
     defaults:
       run:
         working-directory: shearer
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: false
     steps:
       - uses: actions/checkout@v4
 
@@ -20,12 +22,19 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Ensure site-library is writable (renv bootstrap needs this)
-        run: sudo mkdir -p /usr/lib/R/site-library && sudo chown -R "$(whoami)" /usr/lib/R/site-library
-
-      - uses: r-lib/actions/setup-renv@v2
+      - name: Install shearer and app dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: shearer
+          extra-packages: |
+            any::rsconnect
+            any::remotes
+            any::bslib
+            any::shiny
+            any::plotly
+            any::reactable
+            any::thematic
+          needs: check
 
       - name: Install shearer from GitHub (so shinyapps.io can rebuild it server-side)
         env:
