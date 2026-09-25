@@ -32,13 +32,20 @@ you spot an issue or thought about something differently, let me know at the ema
   🚀 — IBM Data Science capstone: collection, wrangling, EDA, and ML modeling to predict
   whether a SpaceX Falcon 9 first-stage booster lands successfully.
 
+## SQL 🗃️
+
+- **[vigilancia-ar](vigilancia-ar)** 🦟 — analytics engineering on Argentina's Dengue/Zika
+  epidemiological surveillance data with dbt-databricks: marts with enforced contracts,
+  SCD2 snapshots, and advanced SQL analyses (regression, haversine distance, Gini,
+  log-Poisson confidence intervals) answering real resource-allocation questions.
+
 ## Python 🐍
 
-- **[Mean-Variance-Standard Deviation Calculator](https://github.com/datakrdo/freecodecamp-dapython/tree/main/01-mean-variance-standard-deviation-calculator)**
-- **[Demographic Data Analyzer](https://github.com/datakrdo/freecodecamp-dapython/tree/main/02-demographic-data-analyzer)**
-- **[Medical Data Visualizer](https://github.com/datakrdo/freecodecamp-dapython/tree/main/03-medical-data-visualizer)**
-- **[Page View Time Series Visualizer](https://github.com/datakrdo/freecodecamp-dapython/tree/main/04-page-view-time-series-visualizer)**
-- **[Sea Level Predictor](https://github.com/datakrdo/freecodecamp-dapython/tree/main/05-sea-level-predictor/)**
+- **[Mean-Variance-Standard Deviation Calculator](https://github.com/datakrdo/freecodecamp-dapython/tree/main/01-mean-variance-standard-deviation-calculator)** — mean/variance/std dev/etc. over a 3x3 matrix with NumPy.
+- **[Demographic Data Analyzer](https://github.com/datakrdo/freecodecamp-dapython/tree/main/02-demographic-data-analyzer)** — pandas breakdown of census-like demographic data.
+- **[Medical Data Visualizer](https://github.com/datakrdo/freecodecamp-dapython/tree/main/03-medical-data-visualizer)** — seaborn/matplotlib visualizations of medical exam data.
+- **[Page View Time Series Visualizer](https://github.com/datakrdo/freecodecamp-dapython/tree/main/04-page-view-time-series-visualizer)** — time series analysis and visualization of page-view data.
+- **[Sea Level Predictor](https://github.com/datakrdo/freecodecamp-dapython/tree/main/05-sea-level-predictor/)** — linear regression on NOAA data to project future sea level rise.
 
 ## Data Visualization 📊
 

@@ -1,6 +1,6 @@
 🇬🇧 [English](README.md) · 🇪🇸 [Español](README_es.md)
 
-# vigilancia-ar
+# vigilancia-ar 🦟
 
 Analytics engineering on Dengue and Zika epidemiological surveillance in Argentina
 (SNVS 2.0, Ministry of Health), built with **dbt-databricks** on Databricks Free
@@ -11,7 +11,7 @@ Source: [datos.salud.gob.ar/dataset/vigilancia-de-dengue-y-zika](https://datos.s
 (CC-BY 4.0). Full data profile, its two schema "eras" and the quality issues found:
 [`docs/data_profile.md`](docs/data_profile.md).
 
-## Architecture (medallion)
+## Architecture (medallion) 🏗️
 
 ```
 seeds/                  georef_departments, age_group_buckets (geo/age-group crosswalks)
@@ -42,7 +42,7 @@ marts/
 
 Every mart (`dim_*`, `fct_*`, `mart_*`) has `contract: enforced: true`.
 
-## Running it
+## Running it 🚀
 
 ```bash
 uv sync
@@ -61,7 +61,7 @@ CI (`.github/workflows/vigilancia-ar-ci.yml`): on PR it runs `sqlfluff lint` + `
 parse`; on push to `main` it runs a full `dbt build` against Databricks (token auth via
 repo secrets).
 
-## Findings (`analyses/`)
+## Findings (`analyses/`) 🔍
 
 - [`season_timing_and_severity.sql`](analyses/season_timing_and_severity.sql) —
   per province and Dengue season (epi week 31 → week 30), the week reaching 50%/90% of
@@ -95,6 +95,6 @@ repo secrets).
   correction factor (latest known count / first published count) by reporting-lag bucket,
   for the small subset of periods that do get revised after publication.
 
-## Status
+## Status ✅
 
 `dbt build` green (models + 76 tests + snapshot), `sqlfluff lint` clean, CI green.
