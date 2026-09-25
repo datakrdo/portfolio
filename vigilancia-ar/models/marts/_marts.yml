@@ -265,6 +265,10 @@ models:
         data_type: bigint
         tests:
           - not_null
+      - name: population
+        data_type: bigint
+      - name: incidence_rate_per_100k
+        data_type: double
       - name: n_years_in_corridor
         data_type: bigint
       - name: p25_case_count
@@ -338,6 +342,12 @@ models:
         data_type: date
         tests:
           - not_null
+      - name: peak_year_population
+        data_type: bigint
+      - name: attack_rate_per_100k
+        data_type: double
+      - name: peak_incidence_rate_per_100k
+        data_type: double
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:

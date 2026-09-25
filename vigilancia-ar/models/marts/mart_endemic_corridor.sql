@@ -21,8 +21,41 @@
 -- (better than usual), p25-p50 = "Seguridad" (normal/safety), p50-p75 = "Alerta"
 -- (above normal, watch), above p75 = "Brote" (outbreak zone) — the actual signal
 -- `mart_outbreaks` acts on.
+--
+-- `incidence_rate_per_100k` is for reading a single week's size (2000 cases in
+-- Buenos Aires isn't the same burden as 2000 in Tierra del Fuego); the corridor
+-- zone itself stays in raw case counts on purpose. RENAPER's population cuts only
+-- start in Aug-2024 (see `mart_incidence_rates`), so every year 2018-2023 is matched
+-- to that same earliest cut — a province's denominator is constant across that whole
+-- span, which means computing the corridor on rates instead of counts would produce
+-- the exact same p25/p50/p75 zone for every year that shares a cut. Not worth the
+-- extra join for a transformation that's a no-op on the classification itself.
 
-with weekly_by_province as (
+with population_cuts as (
+
+    select distinct publish_date from {{ ref('int_province_population') }}
+
+),
+
+year_to_publish_date as (
+
+    select year, publish_date
+    from (
+        select
+            y.target_year as year,
+            p.publish_date,
+            row_number() over (
+                partition by y.target_year
+                order by abs(datediff(make_date(y.target_year, 12, 31), p.publish_date))
+            ) as rn
+        from (select distinct year as target_year from {{ ref('fct_weekly_cases') }}) y
+        cross join population_cuts p
+    )
+    where rn = 1
+
+),
+
+weekly_by_province as (
 
     select
         g.province_indec_id,
@@ -77,6 +110,18 @@ corridor_thresholds as (
     from corridor_history
     group by 1, 2, 3, 4, 5, 6
 
+),
+
+with_population as (
+
+    select
+        w.*,
+        pp.population
+    from weekly_by_province w
+    left join year_to_publish_date ytp on ytp.year = w.year
+    left join {{ ref('int_province_population') }} pp
+        on pp.province_indec_id = w.province_indec_id and pp.publish_date = ytp.publish_date
+
 )
 
 select
@@ -87,6 +132,8 @@ select
     w.year,
     w.epi_week,
     w.case_count,
+    w.population,
+    case when w.population > 0 then w.case_count / w.population * 100000 end as incidence_rate_per_100k,
     t.n_years_in_corridor,
     t.p25_case_count,
     t.p50_case_count,
@@ -98,7 +145,7 @@ select
         when w.case_count <= t.p75_case_count then 'Alerta'
         else 'Brote'
     end as corridor_zone
-from weekly_by_province w
+from with_population w
 left join corridor_thresholds t
     on
         t.province_indec_id = w.province_indec_id

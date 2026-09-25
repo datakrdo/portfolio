@@ -31,7 +31,14 @@ with all_revisions as (
 
 ),
 
-from_snapshot as (
+-- The first ever `dbt snapshot` run captures each period's *already-known* value with
+-- its own `dbt_valid_from` as `published_date` -- a timestamp that never appeared in any
+-- source file, even when the value itself hasn't changed. Left in, that manufactures a
+-- fake "revision" with zero actual change for every period that was only ever published
+-- once. Excluded here by comparing each snapshot row against the latest file-based
+-- revision for the same period: only a snapshot row whose value actually differs from
+-- that latest known value represents a real new revision.
+latest_all_revisions as (
 
     select
         department_indec_id,
@@ -39,9 +46,34 @@ from_snapshot as (
         age_group_name,
         year,
         epi_week,
-        dbt_valid_from as published_date,
-        case_count
-    from {{ ref('snap_dengue_zika_weekly') }}
+        case_count as last_known_case_count
+    from all_revisions
+    qualify row_number() over (
+        partition by department_indec_id, event, age_group_name, year, epi_week
+        order by published_date desc
+    ) = 1
+
+),
+
+from_snapshot as (
+
+    select
+        s.department_indec_id,
+        s.event,
+        s.age_group_name,
+        s.year,
+        s.epi_week,
+        s.dbt_valid_from as published_date,
+        s.case_count
+    from {{ ref('snap_dengue_zika_weekly') }} s
+    left join latest_all_revisions l
+        on
+            l.department_indec_id = s.department_indec_id
+            and l.event = s.event
+            and l.age_group_name = s.age_group_name
+            and l.year = s.year
+            and l.epi_week = s.epi_week
+    where l.last_known_case_count is null or s.case_count <> l.last_known_case_count
 
 ),
 

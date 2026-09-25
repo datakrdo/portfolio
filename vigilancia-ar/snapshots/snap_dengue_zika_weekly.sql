@@ -17,13 +17,13 @@
 -- historical revisions (from distinct raw files); this snapshot is what extends that
 -- picture from today onward. `mart_revisions` reads from both.
 
-select
-    department_indec_id,
-    event,
-    age_group_name,
-    year,
-    epi_week,
-    case_count
-from {{ ref('int_dengue_zika_unified') }}
+    select
+        department_indec_id,
+        event,
+        age_group_name,
+        year,
+        epi_week,
+        case_count
+    from {{ ref('int_dengue_zika_unified') }}
 
 {% endsnapshot %}

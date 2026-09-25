@@ -14,6 +14,13 @@
 -- The island id is the classic `row_number() - row_number()` trick: a stable id per
 -- province+event that only changes when the outbreak flag flips, which turns
 -- "find consecutive weeks" into a plain `group by`.
+--
+-- `attack_rate_per_100k`/`peak_incidence_rate_per_100k` matter because raw
+-- `total_cases`/`peak_case_count` alone favor big provinces just for being big (2000
+-- cases in Buenos Aires isn't the same outbreak as 2000 in Tierra del Fuego). An
+-- episode can span a year boundary, so there's no single "the" population for it;
+-- population is taken from the peak week's year (`mart_endemic_corridor` already
+-- carries it), same year `peak_case_count`/`peak_week_start_date` are read from.
 
 with corridor as (
 
@@ -25,6 +32,7 @@ with corridor as (
         c.year,
         c.epi_week,
         c.case_count,
+        c.population,
         c.corridor_zone,
         w.week_start_date,
         w.week_end_date,
@@ -64,7 +72,16 @@ select
     count(*) as duration_weeks,
     sum(case_count) as total_cases,
     max(case_count) as peak_case_count,
-    max_by(week_start_date, case_count) as peak_week_start_date
+    max_by(week_start_date, case_count) as peak_week_start_date,
+    max_by(population, case_count) as peak_year_population,
+    case
+        when max_by(population, case_count) > 0
+            then sum(case_count) / max_by(population, case_count) * 100000
+    end as attack_rate_per_100k,
+    case
+        when max_by(population, case_count) > 0
+            then max(case_count) / max_by(population, case_count) * 100000
+    end as peak_incidence_rate_per_100k
 from islands
 where is_outbreak_week = 1
 group by 1, 2, 3, 4, 5
