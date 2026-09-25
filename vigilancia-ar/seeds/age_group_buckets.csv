@@ -1,0 +1,24 @@
+desc_norm,age_group_name,age_group_sort_order
+,Sin especificar,999
+-,Sin especificar,999
+edad sin esp.,Sin especificar,999
+sin especificar,Sin especificar,999
+neonato (hasta 28 dias),Neonato (hasta 28 días),0
+posneonato (29 hasta 365 dias),Posneonato (29 a 365 días),10
+posneonato (de 29 a 365 dias),Posneonato (29 a 365 días),10
+menor que 1 ano,Menor de 1 año (sin especificar),15
+igual a 1 ano,1 año,20
+de 13 a 24 meses,De 13 a 24 meses,30
+de 2 a 4 anos,De 2 a 4 años,40
+de 5 a 9 anos,De 5 a 9 años,50
+de 10 a 14 anos,De 10 a 14 años,60
+de 15 a 19 anos,De 15 a 19 años,70
+de 15 a 24 anos,De 15 a 24 años (rango de fuente),75
+de 20 a 24 anos,De 20 a 24 años,80
+de 25 a 34 anos,De 25 a 34 años,90
+de 35 a 44 anos,De 35 a 44 años,100
+de 45 a 64 anos,De 45 a 64 años,110
+de 45 a 65 anos,De 45 a 65 años (rango de fuente),115
+mayor de 65 anos,Mayores de 65 años,120
+mayor o igual de 65 anos,Mayores de 65 años,120
+mayores de 65 anos,Mayores de 65 años,120

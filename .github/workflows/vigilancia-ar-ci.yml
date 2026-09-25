@@ -1,0 +1,102 @@
+name: vigilancia-ar CI
+
+on:
+  pull_request:
+    paths:
+      - "vigilancia-ar/**"
+      - ".github/workflows/vigilancia-ar-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vigilancia-ar/**"
+      - ".github/workflows/vigilancia-ar-ci.yml"
+
+jobs:
+  lint-and-parse:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: vigilancia-ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install dbt-databricks sqlfluff sqlfluff-templater-dbt
+
+      - name: Write CI dbt profile (token auth, no local oauth creds needed)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml <<EOF
+          vigilancia_ar:
+            target: ci
+            outputs:
+              ci:
+                type: databricks
+                catalog: workspace
+                schema: ci_vigilancia_ar
+                host: "${DATABRICKS_HOST}"
+                http_path: "${DATABRICKS_HTTP_PATH}"
+                token: "${DATABRICKS_TOKEN}"
+                threads: 4
+          EOF
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: sqlfluff lint
+        run: sqlfluff lint models/
+
+      - name: dbt parse
+        run: dbt parse --target ci
+
+  build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: vigilancia-ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install dbt-databricks
+
+      - name: Write CI dbt profile (token auth)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml <<EOF
+          vigilancia_ar:
+            target: ci
+            outputs:
+              ci:
+                type: databricks
+                catalog: workspace
+                schema: dev_vigilancia_ar
+                host: "${DATABRICKS_HOST}"
+                http_path: "${DATABRICKS_HTTP_PATH}"
+                token: "${DATABRICKS_TOKEN}"
+                threads: 4
+          EOF
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt build
+        run: dbt build --target ci

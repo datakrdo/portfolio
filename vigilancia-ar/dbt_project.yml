@@ -1,0 +1,37 @@
+name: "vigilancia_ar"
+version: "1.0.0"
+config-version: 2
+
+profile: "vigilancia_ar"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  vigilancia_ar:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  vigilancia_ar:
+    georef_departments:
+      +column_types:
+        # digit-only CSV columns get inferred as bigint by default, which silently
+        # drops the leading zeros these INDEC codes rely on (e.g. "02021" -> 2021)
+        department_indec_id: string
+        province_indec_id: string

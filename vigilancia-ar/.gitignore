@@ -1,0 +1,26 @@
+# dbt artifacts
+target/
+dbt_packages/
+logs/
+
+# Real profile (has the Databricks token) — profiles.yml.example is the tracked template
+profiles.yml
+
+# Raw data (large, not versioned)
+data/raw/*
+!data/raw/.gitkeep
+
+# Environments
+.venv
+.env
+
+# OS files
+.DS_Store
+
+# Agent scaffolding (working notes; not part of the published portfolio)
+.clinerules/
+.agents/
+.claude/
+.cline/
+.serena/
+skills-lock.json

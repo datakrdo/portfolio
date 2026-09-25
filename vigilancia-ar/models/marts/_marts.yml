@@ -1,0 +1,409 @@
+version: 2
+
+models:
+  - name: dim_geography
+    description: >
+      Canonical department dimension (Georef), plus a synthetic "Unknown" member
+      per province and one fully-unknown member, for source rows with
+      unidentified residence.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: department_indec_id
+        data_type: string
+        tests:
+          - unique
+          - not_null
+      - name: department_name
+        data_type: string
+        tests:
+          - not_null
+      - name: province_indec_id
+        data_type: string
+        tests:
+          - not_null
+      - name: province_name
+        data_type: string
+        tests:
+          - not_null
+      - name: centroid_lat
+        data_type: double
+      - name: centroid_lon
+        data_type: double
+      - name: is_unknown
+        data_type: boolean
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+
+  - name: dim_age_group
+    description: Canonical age-group buckets, sourced from the `age_group_buckets` seed.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: age_group_name
+        data_type: string
+        tests:
+          - unique
+          - not_null
+      - name: age_group_sort_order
+        data_type: bigint
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_event
+    description: Dengue/Zika event value set.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: event_name
+        data_type: string
+        tests:
+          - unique
+          - not_null
+      - name: event_code
+        data_type: string
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              values: ['DENGUE', 'DENGUE_GESTATIONAL', 'ZIKA']
+
+  - name: dim_epi_week
+    description: Epidemiological week calendar (PAHO/CDC convention).
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: year
+        data_type: int
+        tests:
+          - not_null
+      - name: epi_week
+        data_type: int
+        tests:
+          - not_null
+      - name: week_start_date
+        data_type: date
+        tests:
+          - not_null
+      - name: week_end_date
+        data_type: date
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [year, epi_week]
+
+  - name: fct_weekly_cases
+    description: >
+      Grain: event x department x age group x epi week x year. Densified so a
+      week with no reported cases still gets an explicit `case_count = 0` row.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: department_indec_id
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_geography')
+              field: department_indec_id
+      - name: event_code
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_event')
+              field: event_code
+      - name: event_name
+        data_type: string
+        tests:
+          - not_null
+      - name: age_group_name
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_age_group')
+              field: age_group_name
+      - name: age_group_sort_order
+        data_type: bigint
+        tests:
+          - not_null
+      - name: year
+        data_type: int
+        tests:
+          - not_null
+      - name: epi_week
+        data_type: int
+        tests:
+          - not_null
+      - name: week_start_date
+        data_type: date
+        tests:
+          - not_null
+      - name: week_end_date
+        data_type: date
+        tests:
+          - not_null
+      - name: case_count
+        data_type: bigint
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - department_indec_id
+            - event_code
+            - age_group_name
+            - year
+            - epi_week
+
+  - name: mart_incidence_rates
+    description: >
+      Grain: event x department x epi week x year. Rate per 100k, cumulative
+      case count/rate within the year, and prior-year same-week case count.
+      Population (and therefore the rate) is null for `dim_geography`'s
+      synthetic "Unknown" members and for CABA comunas (see
+      docs/data_profile.md).
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: department_indec_id
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_geography')
+              field: department_indec_id
+      - name: event_code
+        data_type: string
+        tests:
+          - not_null
+      - name: event_name
+        data_type: string
+        tests:
+          - not_null
+      - name: year
+        data_type: int
+        tests:
+          - not_null
+      - name: epi_week
+        data_type: int
+        tests:
+          - not_null
+      - name: week_start_date
+        data_type: date
+      - name: week_end_date
+        data_type: date
+      - name: case_count
+        data_type: bigint
+        tests:
+          - not_null
+      - name: population
+        data_type: bigint
+      - name: incidence_rate_per_100k
+        data_type: double
+      - name: cumulative_case_count
+        data_type: bigint
+        tests:
+          - not_null
+      - name: cumulative_incidence_rate_per_100k
+        data_type: double
+      - name: prior_year_case_count
+        data_type: bigint
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - department_indec_id
+            - event_code
+            - year
+            - epi_week
+
+  - name: mart_endemic_corridor
+    description: >
+      Grain: event x province x epi week x year. 25th/50th/75th percentile
+      thresholds of the same epi week over the 5 years before the target
+      year, and the resulting corridor zone (Éxito/Seguridad/Alerta/Brote).
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: province_indec_id
+        data_type: string
+        tests:
+          - not_null
+      - name: province_name
+        data_type: string
+        tests:
+          - not_null
+      - name: event_code
+        data_type: string
+        tests:
+          - not_null
+      - name: event_name
+        data_type: string
+        tests:
+          - not_null
+      - name: year
+        data_type: int
+        tests:
+          - not_null
+      - name: epi_week
+        data_type: int
+        tests:
+          - not_null
+      - name: case_count
+        data_type: bigint
+        tests:
+          - not_null
+      - name: n_years_in_corridor
+        data_type: bigint
+      - name: p25_case_count
+        data_type: double
+      - name: p50_case_count
+        data_type: double
+      - name: p75_case_count
+        data_type: double
+      - name: corridor_zone
+        data_type: string
+        tests:
+          - accepted_values:
+              values: ['Éxito', 'Seguridad', 'Alerta', 'Brote']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - province_indec_id
+            - event_code
+            - year
+            - epi_week
+
+  - name: mart_outbreaks
+    description: >
+      Grain: one row per outbreak episode (a run of consecutive "Brote" weeks
+      from `mart_endemic_corridor`, per province x event).
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: province_indec_id
+        data_type: string
+        tests:
+          - not_null
+      - name: province_name
+        data_type: string
+        tests:
+          - not_null
+      - name: event_code
+        data_type: string
+        tests:
+          - not_null
+      - name: event_name
+        data_type: string
+        tests:
+          - not_null
+      - name: outbreak_id
+        data_type: int
+        tests:
+          - not_null
+      - name: outbreak_start_date
+        data_type: date
+        tests:
+          - not_null
+      - name: outbreak_end_date
+        data_type: date
+        tests:
+          - not_null
+      - name: duration_weeks
+        data_type: bigint
+        tests:
+          - not_null
+      - name: total_cases
+        data_type: bigint
+        tests:
+          - not_null
+      - name: peak_case_count
+        data_type: bigint
+        tests:
+          - not_null
+      - name: peak_week_start_date
+        data_type: date
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - province_indec_id
+            - event_code
+            - outbreak_id
+
+  - name: mart_revisions
+    description: >
+      Grain: event x department x age group x epi week x year x publication.
+      Tracks how a published case count changed across successive
+      publications of the same period.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: department_indec_id
+        data_type: string
+        tests:
+          - not_null
+      - name: event
+        data_type: string
+        tests:
+          - not_null
+      - name: age_group_name
+        data_type: string
+        tests:
+          - not_null
+      - name: year
+        data_type: int
+        tests:
+          - not_null
+      - name: epi_week
+        data_type: int
+        tests:
+          - not_null
+      - name: published_date
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: revision_number
+        data_type: int
+        tests:
+          - not_null
+      - name: total_revisions
+        data_type: bigint
+        tests:
+          - not_null
+      - name: case_count
+        data_type: bigint
+        tests:
+          - not_null
+      - name: prior_case_count
+        data_type: bigint
+      - name: case_count_change_from_prior_revision
+        data_type: bigint
+      - name: is_latest_revision
+        data_type: boolean
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - department_indec_id
+            - event
+            - age_group_name
+            - year
+            - epi_week
+            - published_date

@@ -1,0 +1,15 @@
+# Copy to ~/.dbt/profiles.yml. No token here: auth comes from the OAuth
+# profile already logged in via the Databricks CLI (`databricks auth login`),
+# through DATABRICKS_CONFIG_PROFILE. host/http_path: Free Edition > SQL
+# Warehouses > Connection details.
+vigilancia_ar:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: workspace
+      schema: dev_{{ env_var('USER', 'local') }}
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      auth_type: "oauth"
+      threads: 4
