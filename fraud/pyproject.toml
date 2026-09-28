@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
 
 [project]
 name = "fraud-detection"
@@ -11,9 +11,8 @@ requires-python = ">=3.12"
 authors = [{ name = "Krdo" }]
 dependencies = [
     "numpy>=2.5",
-    "pandas>=3.0",
-    "scikit-learn>=1.9",
-    "scipy>=1.18",
+    "pandas>=3.0.6",
+    "scikit-learn>=1.9.1",
     "matplotlib>=3.11",
     "seaborn>=0.13",
     "joblib>=1.4",
@@ -21,42 +20,29 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = ["xgboost>=3.4", "lightgbm>=4.7"]
-hpo = ["optuna>=5.0"]
 shap = ["shap>=0.52"]
 imb = ["imbalanced-learn>=0.14"]
+all = ["fraud-detection[gpu,shap,imb]"]
+
+[dependency-groups]
 dev = [
     "pytest>=9.1",
-    "ruff>=0.16",
+    "ruff>=0.16.9",
     "nbconvert>=7.17",
     "nbformat>=5.11",
     "jupyter>=1.1",
-    "ipykernel>=6.29",
-    "ipywidgets>=8.1",
-]
-all = [
-    "xgboost>=3.4",
-    "lightgbm>=4.7",
-    "optuna>=5.0",
-    "shap>=0.52",
-    "imbalanced-learn>=0.14",
-    "pytest>=9.1",
-    "ruff>=0.16",
-    "nbconvert>=7.17",
-    "nbformat>=5.11",
-    "jupyter>=1.1",
-    "ipykernel>=6.29",
+    "ipykernel>=7",
     "ipywidgets>=8.1",
 ]
 
 [project.scripts]
-fraud = "src.fraud.cli:main"
+fraud = "fraud.cli:main"
+
+[tool.uv.build-backend]
+module-name = "fraud"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
-
-[tool.setuptools.packages.find]
-include = ["src*"]
 
 [tool.ruff]
 line-length = 100
@@ -66,6 +52,3 @@ extend-exclude = [".agents", ".clinerules", ".claude", ".cline", "legacy"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["src"]

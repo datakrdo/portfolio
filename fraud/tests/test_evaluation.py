@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.fraud.evaluation import binary_metrics, precision_at_k
+from fraud.evaluation import binary_metrics, precision_at_k
 
 RNG = np.random.default_rng(41)
 

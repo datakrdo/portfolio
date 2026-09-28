@@ -17,12 +17,12 @@ import pandas as pd
 # Sparkov's `merch_lat`/`merch_long` are drawn uniformly around the
 # cardholder's home address rather than from real merchant locations, so
 # distance to the merchant carries no fraud signal in this dataset (verified
-# in the notebook: ~76 km for both classes). Built anyway, because that null
-# result is itself the point, and dropped from `NUMERIC_FEATURES` below.
+# in the notebook: ~76 km for both classes). Still computed so that null result
+# is reproducible, but not part of `modeling.NUMERIC_FEATURES`.
 EARTH_RADIUS_KM: Final[float] = 6371.0
 
 # 22-23h shows a 5x lift in fraud rate over the 0.58% baseline (measured on
-# fraudTrain); the cut is that empirical boundary, not an arbitrary "night".
+# fraudTrain); the window extends through 03h, the contiguous overnight block.
 NIGHT_HOURS: Final[set[int]] = {22, 23, 0, 1, 2, 3}
 
 ROLLING_WINDOWS: Final[tuple[str, ...]] = ("1h", "24h", "7D")
@@ -51,9 +51,9 @@ def _card_velocity_features(frame: pd.DataFrame) -> pd.DataFrame:
     out = {}
     grouped = frame.groupby("cc_num")
     seconds_since_prev = grouped["trans_date_trans_time"].diff().dt.total_seconds()
-    # A card's first transaction has no predecessor. NaN (not np.inf) so it
-    # stays finite for StandardScaler; 30 days is far past any real window
-    # and clearly separable from an active card's actual gaps.
+    # A card's first transaction has no predecessor. Fill with 30 days (not
+    # NaN/inf) so it stays finite for StandardScaler; that is far past any real
+    # window and clearly separable from an active card's actual gaps.
     out["seconds_since_prev_tx"] = seconds_since_prev.fillna(30 * 24 * 3600).to_numpy()
 
     for window in ROLLING_WINDOWS:
@@ -76,22 +76,19 @@ def _card_history_features(frame: pd.DataFrame) -> pd.DataFrame:
     """
 
     grouped = frame.groupby("cc_num")["amt"]
-    running_mean = grouped.apply(lambda s: s.expanding().mean().shift(1)).droplevel(0)
-    running_std = grouped.apply(lambda s: s.expanding().std().shift(1)).droplevel(0)
-    running_median = grouped.apply(lambda s: s.expanding().median().shift(1)).droplevel(0)
+    running_mean = grouped.transform(lambda s: s.expanding().mean().shift(1))
+    running_std = grouped.transform(lambda s: s.expanding().std().shift(1))
+    running_median = grouped.transform(lambda s: s.expanding().median().shift(1))
 
     zscore = (frame["amt"] - running_mean) / running_std.replace(0, np.nan)
     ratio_to_median = frame["amt"] / running_median.replace(0, np.nan)
 
-    seen_merchant = frame.groupby("cc_num")["merchant"].apply(lambda s: s.duplicated())
-    seen_category = frame.groupby("cc_num")["category"].apply(lambda s: s.duplicated())
-
     return pd.DataFrame(
         {
-            "amt_zscore_vs_card_history": zscore.fillna(0.0).to_numpy(),
-            "amt_ratio_to_card_median": ratio_to_median.fillna(1.0).to_numpy(),
-            "is_new_merchant_for_card": (~seen_merchant.to_numpy(dtype=bool)),
-            "is_new_category_for_card": (~seen_category.to_numpy(dtype=bool)),
+            "amt_zscore_vs_card_history": zscore.fillna(0.0),
+            "amt_ratio_to_card_median": ratio_to_median.fillna(1.0),
+            "is_new_merchant_for_card": ~frame.duplicated(["cc_num", "merchant"]),
+            "is_new_category_for_card": ~frame.duplicated(["cc_num", "category"]),
         },
         index=frame.index,
     )

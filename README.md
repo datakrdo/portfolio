@@ -15,9 +15,10 @@
 
 Hi, I'm Federico 👋 — a data professional with experience working across large datasets,
 comfortable finding trends and patterns and communicating findings to non-technical
-audiences. This is a collection of personal data science and ML projects, built from
-scratch — all mistakes and wins are 100% mine. There's always room for improvement, so if
-you spot an issue or thought about something differently, let me know at the email above.
+audiences. This is a collection of personal projects spanning ML, analytics engineering
+(SQL/dbt) and R data analysis, built from scratch — all mistakes and wins are 100% mine.
+There's always room for improvement, so if you spot an issue or thought about something
+differently, let me know at the email above.
 
 ## Machine Learning 🤖
 
@@ -38,6 +39,12 @@ you spot an issue or thought about something differently, let me know at the ema
   epidemiological surveillance data with dbt-databricks: marts with enforced contracts,
   SCD2 snapshots, and advanced SQL analyses (regression, haversine distance, Gini,
   log-Poisson confidence intervals) answering real resource-allocation questions.
+
+## Data Analysis 📊
+
+- **[Alan Shearer's 260](shearer)** ⚽ — era-adjusted, fully-sourced analysis of Alan
+  Shearer's Premier League scoring record, in R. Five independent sources cross-checked
+  (468/468 matches agree), a `{targets}` pipeline, and a six-panel Shiny dashboard.
 
 ## Python 🐍
 

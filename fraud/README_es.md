@@ -9,8 +9,8 @@ holdout.
 
 Dos entregables:
 
-- **[`fraud-portfolio.ipynb`](fraud-portfolio.ipynb)** — notebook autocontenida
-  (no importa `src/`), narrativa en español, ejecutada de punta a punta. Es el recorrido
+- **[`fraud-portfolio_es.ipynb`](fraud-portfolio_es.ipynb)** — notebook autocontenida
+  (no importa el paquete `fraud`), narrativa en español, ejecutada de punta a punta. Es el recorrido
   completo: problema, EDA, feature engineering causal, escalera de modelos, la decisión de
   cómo tratar el desbalance, calibración, y la sección de umbral y dinero.
 - **`src/fraud/`** — paquete productivo instalable con `uv`: carga y split temporal,
@@ -54,10 +54,12 @@ Dos entregables:
   `groupby("cc_num").rolling(window, on=..., closed="left")`, que excluye la fila actual: un
   agregado que se filtra a sí mismo infla el PR-AUC de validación sin que el modelo haya
   aprendido nada generalizable.
-- **`distance_km` se construye y se descarta.** `merch_lat`/`merch_long` en este dataset se
+- **`distance_km` se construye y se deja fuera del modelo.** `merch_lat`/`merch_long` en este dataset se
   generan de forma uniforme alrededor del domicilio del titular, así que la distancia
-  titular↔comercio no discrimina (≈76 km en ambas clases). Se deja documentada como
-  resultado negativo, no se omite.
+  titular↔comercio no discrimina (≈76 km en ambas clases). Una ablación sobre el modelo
+  final lo confirma: PR-AUC de validación 0,9760 sin ella, 0,9756 con ella. Se sigue
+  calculando en `build_features` para que el resultado negativo sea reproducible, pero no
+  es entrada del modelo.
 - **Ponderación de la pérdida, no SMOTE.** `scale_pos_weight` (boosteados) /
   `class_weight="balanced"` (LogReg) en vez de resamplear. Motivos: (1) 9.651 fraudes
   absolutos no es un problema de escasez de etiquetas; (2) SMOTE interpola en un espacio con
@@ -88,7 +90,7 @@ uv run fraud evaluate --model models/xgboost.joblib --data data/raw/fraudTest.cs
 uv run fraud score transacciones.csv --model models/xgboost.joblib -o scores.csv
 ```
 
-`uv run jupyter nbconvert --execute --inplace fraud-portfolio.ipynb` reproduce la
+`uv run jupyter nbconvert --execute --inplace fraud-portfolio_es.ipynb` reproduce la
 notebook desde cero.
 
 ## Diseño por módulo 📦
@@ -96,7 +98,8 @@ notebook desde cero.
 - `src/fraud/data.py` — carga, valida esquema, castea `cc_num` a string, ordena
   causalmente, y corta `fraudTrain.csv` en train/validación por fecha (`TemporalSplit`).
 - `src/fraud/features.py` — `build_features`, pura y sin estado: features temporales,
-  monto, velocidad causal por tarjeta, novedad de comercio/categoría, y `distance_km`.
+  monto, velocidad causal por tarjeta, novedad de comercio/categoría, y `distance_km`
+  (calculada, no es entrada del modelo).
 - `src/fraud/modeling.py` — registro `MODEL_SPECS` (`dummy`, `logreg`, `lightgbm`,
   `xgboost`), con los dos últimos usando GPU (`device="cuda"`/`"gpu"`) y degradación
   elegante si los extras `[gpu]` no están instalados.

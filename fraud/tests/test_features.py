@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.fraud.features import build_features
+from fraud.features import build_features
 
 
 def _toy_frame() -> pd.DataFrame:
@@ -49,6 +49,31 @@ def test_rolling_windows_exclude_current_row():
     still = changed.iloc[:3]
     for col in ["tx_count_card_1h", "amt_sum_card_1h", "amt_zscore_vs_card_history"]:
         assert (unaffected[col].to_numpy() == still[col].to_numpy()).all(), col
+
+
+def test_future_amount_does_not_leak_across_cards():
+    n = 50
+    frame = pd.DataFrame(
+        {
+            "cc_num": [str(i % 3) for i in range(n)],
+            "trans_date_trans_time": pd.date_range("2020-01-01", periods=n, freq="2h"),
+            "merchant": ["a"] * n,
+            "category": ["shopping_net"] * n,
+            "amt": [10.0] * n,
+            "dob": pd.to_datetime(["1990-01-01"] * n),
+            "lat": [40.0] * n,
+            "long": [-70.0] * n,
+            "merch_lat": [40.1] * n,
+            "merch_long": [-70.1] * n,
+            "is_fraud": [0] * n,
+        }
+    ).sort_values(["cc_num", "trans_date_trans_time"], ignore_index=True)
+    altered = frame.copy()
+    altered.loc[n - 1, "amt"] = 999_999.0
+
+    base, changed = build_features(frame), build_features(altered)
+    cols = ["tx_count_card_1h", "amt_sum_card_1h", "amt_zscore_vs_card_history"]
+    assert (base[cols].iloc[:-1].to_numpy() == changed[cols].iloc[:-1].to_numpy()).all()
 
 
 def test_second_transaction_within_window_sees_only_the_first():

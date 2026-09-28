@@ -18,8 +18,6 @@ from .features import build_features
 from .modeling import FEATURE_COLUMNS, build_pipeline
 from .threshold import FP_COST, select_threshold_by_savings
 
-RANDOM_STATE = 41
-
 
 @dataclass
 class FraudModel:
@@ -66,7 +64,6 @@ def run_train(
     split = make_split(train_path, test_path, valid_fraction=valid_fraction)
     train_feat = build_features(split.train)
     valid_feat = build_features(split.valid)
-    test_feat = build_features(split.test)
 
     prevalence = float(train_feat["is_fraud"].mean())
     pipeline = build_pipeline(model_name, prevalence=prevalence)
@@ -90,7 +87,7 @@ def run_train(
         "threshold": threshold,
         "fp_cost": fp_cost,
         "valid": binary_metrics(valid_feat["is_fraud"], valid_proba, threshold=threshold),
-        "test": binary_metrics(test_feat["is_fraud"], test_proba, threshold=threshold),
+        "test": binary_metrics(split.test["is_fraud"], test_proba, threshold=threshold),
     }
     return model, metrics
 

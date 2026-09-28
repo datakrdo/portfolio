@@ -1,3 +1,5 @@
+🇬🇧 [English](README.md) · 🇪🇸 [Español](README_es.md)
+
 # Alan Shearer's 260 ⚽
 
 An era-adjusted, fully-sourced analysis of Alan Shearer's Premier League scoring

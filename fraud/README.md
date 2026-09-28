@@ -9,7 +9,7 @@ prevalence of 0.58% in the training period and 0.39% in the holdout.
 Two deliverables:
 
 - **[`fraud-portfolio.ipynb`](fraud-portfolio.ipynb)** — self-contained notebook
-  (does not import `src/`), executed end to end. The full walkthrough: problem, EDA,
+  (does not import the `fraud` package), executed end to end. The full walkthrough: problem, EDA,
   causal feature engineering, the model ladder, the imbalance-handling decision,
   calibration, and the threshold-and-money section.
 - **`src/fraud/`** — installable production package with `uv`: loading and temporal
@@ -52,10 +52,11 @@ Two deliverables:
   `groupby("cc_num").rolling(window, on=..., closed="left")`, which excludes the current
   row: an aggregate that leaks into itself inflates validation PR-AUC without the model
   having learned anything generalizable.
-- **`distance_km` is built and discarded.** `merch_lat`/`merch_long` in this dataset are
+- **`distance_km` is built and left out of the model.** `merch_lat`/`merch_long` in this dataset are
   generated uniformly around the cardholder's home, so cardholder-to-merchant distance
-  doesn't discriminate (≈76 km in both classes). It's kept documented as a negative
-  result, not omitted.
+  doesn't discriminate (≈76 km in both classes). An ablation on the final model confirms it:
+  validation PR-AUC 0.9760 without it, 0.9756 with it. It stays computed in
+  `build_features` so the negative result is reproducible, but isn't a model input.
 - **Loss weighting, not SMOTE.** `scale_pos_weight` (boosted models) / `class_weight="balanced"`
   (LogReg) instead of resampling. Reasons: (1) 9,651 absolute fraud cases isn't a
   label-scarcity problem; (2) SMOTE interpolates in a space with high-cardinality
@@ -94,7 +95,8 @@ notebook from scratch.
 - `src/fraud/data.py` — loads, validates schema, casts `cc_num` to string, sorts
   causally, and cuts `fraudTrain.csv` into train/validation by date (`TemporalSplit`).
 - `src/fraud/features.py` — `build_features`, pure and stateless: temporal features,
-  amount, causal per-card velocity, merchant/category novelty, and `distance_km`.
+  amount, causal per-card velocity, merchant/category novelty, and `distance_km` (computed,
+  not a model input).
 - `src/fraud/modeling.py` — `MODEL_SPECS` registry (`dummy`, `logreg`, `lightgbm`,
   `xgboost`), the last two using GPU (`device="cuda"`/`"gpu"`) with graceful degradation
   if the `[gpu]` extras aren't installed.

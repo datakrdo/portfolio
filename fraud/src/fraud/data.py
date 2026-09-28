@@ -62,7 +62,7 @@ class TemporalSplit:
     test: pd.DataFrame
 
 
-def validate_schema(frame: pd.DataFrame) -> bool:
+def validate_schema(frame: pd.DataFrame) -> None:
     """Check that `frame` has the expected Sparkov columns and an `is_fraud` label."""
 
     missing = set(EXPECTED_COLUMNS) - set(frame.columns)
@@ -73,7 +73,6 @@ def validate_schema(frame: pd.DataFrame) -> bool:
         )
     if not frame["is_fraud"].isin([0, 1]).all():
         raise ValueError("is_fraud must be binary (0/1).")
-    return True
 
 
 def load_transactions(path: str | Path) -> pd.DataFrame:

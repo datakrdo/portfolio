@@ -9,7 +9,9 @@ from pathlib import Path
 
 from .data import load_transactions
 from .evaluation import binary_metrics
+from .modeling import MODEL_SPECS
 from .pipeline import FraudModel, run_score, run_train
+from .threshold import FP_COST
 
 
 def _train(args: argparse.Namespace) -> None:
@@ -36,11 +38,8 @@ def _score(args: argparse.Namespace) -> None:
 def _evaluate(args: argparse.Namespace) -> None:
     model = FraudModel.load(args.model)
     frame = load_transactions(args.data)
-    from .features import build_features
-
-    feat = build_features(frame)
     proba = model.predict_proba(frame)
-    metrics = binary_metrics(feat["is_fraud"], proba, threshold=model.threshold)
+    metrics = binary_metrics(frame["is_fraud"], proba, threshold=model.threshold)
     print(json.dumps(metrics, indent=2))
 
 
@@ -51,10 +50,8 @@ def main() -> None:
     train_p = sub.add_parser("train", help="Fit a model and freeze its threshold on validation.")
     train_p.add_argument("--data", default="data/raw/fraudTrain.csv")
     train_p.add_argument("--test-data", default="data/raw/fraudTest.csv")
-    train_p.add_argument(
-        "--model", default="xgboost", choices=["dummy", "logreg", "lightgbm", "xgboost"]
-    )
-    train_p.add_argument("--fp-cost", type=float, default=4.0)
+    train_p.add_argument("--model", default="xgboost", choices=sorted(MODEL_SPECS))
+    train_p.add_argument("--fp-cost", type=float, default=FP_COST)
     train_p.add_argument("--out", default="models")
     train_p.set_defaults(func=_train)
 

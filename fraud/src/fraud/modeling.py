@@ -14,11 +14,11 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from .features import ROLLING_WINDOWS
 
-# Columns handed to the model. `distance_km` is included deliberately: the
-# notebook measures that it carries no signal and the point is to show that
-# measurement, not to hide the feature. High-cardinality `merchant`/`job` are
-# left out of the one-hot set (693/494 levels) -- `category` and `state` are
-# the categoricals cheap enough to one-hot.
+# Columns handed to the model. `distance_km` is computed by `build_features` but
+# deliberately not listed: the notebook measures that it carries no signal
+# (ablation in Section 7). High-cardinality `merchant`/`job` are left out of
+# the one-hot set (693/494 levels) -- `category` and `state` are the
+# categoricals cheap enough to one-hot.
 NUMERIC_FEATURES: list[str] = [
     "amt",
     "log_amt",
@@ -27,7 +27,6 @@ NUMERIC_FEATURES: list[str] = [
     "hour_cos",
     "day_of_week",
     "age_years",
-    "distance_km",
     "amt_zscore_vs_card_history",
     "amt_ratio_to_card_median",
     "seconds_since_prev_tx",

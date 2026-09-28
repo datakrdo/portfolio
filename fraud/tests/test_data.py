@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.fraud.data import LEAKAGE_COLUMNS, temporal_split
-from src.fraud.features import build_features
+from fraud.data import LEAKAGE_COLUMNS, temporal_split
+from fraud.features import build_features
 
 
 def _toy_frame(n: int = 100) -> pd.DataFrame:

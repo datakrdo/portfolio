@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.fraud.threshold import marginal_analysis, select_threshold_by_savings, threshold_sweep
+from fraud.threshold import marginal_analysis, select_threshold_by_savings, threshold_sweep
 
 RNG = np.random.default_rng(41)
 
