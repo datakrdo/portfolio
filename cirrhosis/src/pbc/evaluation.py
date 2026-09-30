@@ -28,6 +28,10 @@ class MetricsResult(TypedDict, total=False):
     specificity: float
     threshold: float
     positive_rate: float
+    ppv: float
+    npv: float
+    prevalence: float
+    biopsies_avoided: float
     brier_score: float
     calibration_slope: float
     bootstrap_95_ci: dict[str, list[float]]
@@ -42,16 +46,45 @@ class ShapResult(TypedDict, total=False):
     X: Any
 
 
+TARGET_SENSITIVITY = 0.90
+
+
+def _rule_out_score(
+    y_true: np.ndarray, predicted: np.ndarray, *, target_sensitivity: float
+) -> float:
+    tn, fp, fn, tp = confusion_matrix(y_true, predicted, labels=[0, 1]).ravel()
+    sensitivity = tp / (tp + fn) if tp + fn else 0.0
+    specificity = tn / (tn + fp) if tn + fp else 0.0
+    return specificity if sensitivity >= target_sensitivity else sensitivity - 1.0
+
+
+def rule_out_scorer(target_sensitivity: float = TARGET_SENSITIVITY) -> Any:
+    """Scorer for rule-out thresholds: max specificity s.t. sensitivity >= target.
+
+    Below the target the score is `sensitivity - 1` (always < 0), so any threshold
+    meeting the target beats any that does not, and among failures the one closest
+    to the target wins. Module-level score function so fitted models stay picklable.
+    """
+
+    from sklearn.metrics import make_scorer
+
+    return make_scorer(_rule_out_score, target_sensitivity=target_sensitivity)
+
+
 def select_operating_threshold(
     estimator: Any,
     X_train: Any,
     y_train: np.ndarray,
     *,
-    scoring: str = "balanced_accuracy",
+    scoring: Any = None,
     cv: int = 5,
     random_state: int = 41,
 ) -> tuple[float, Any]:
     """Pick a decision threshold with `TunedThresholdClassifierCV`, never test labels.
+
+    `scoring=None` means the rule-out objective (`rule_out_scorer`): the use case
+    is to spare a biopsy, so the threshold keeps sensitivity for advanced stage
+    high and only then buys specificity.
 
     Replaces the manual validation-split threshold search: the estimator is
     refit across `cv` folds of the training data only, and the threshold that
@@ -63,7 +96,7 @@ def select_operating_threshold(
 
     tuned = TunedThresholdClassifierCV(
         estimator,
-        scoring=scoring,
+        scoring=scoring if scoring is not None else rule_out_scorer(),
         cv=StratifiedKFold(cv, shuffle=True, random_state=random_state),
         random_state=random_state,
     )
@@ -87,6 +120,10 @@ def binary_metrics(
         "specificity": float(tn / (tn + fp)) if tn + fp else 0.0,
         "threshold": float(threshold),
         "positive_rate": float(predicted.mean()),
+        "ppv": float(tp / (tp + fp)) if tp + fp else 0.0,
+        "npv": float(tn / (tn + fn)) if tn + fn else 0.0,
+        "prevalence": float(y_true.mean()),
+        "biopsies_avoided": float(1.0 - predicted.mean()),
         "brier_score": float(brier_score_loss(y_true, probabilities)),
     }
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.reporting import generate_report
+from pbc.reporting import generate_report
 
 
 def test_generate_report_writes_decision_curve_and_stability_plots(tmp_path):

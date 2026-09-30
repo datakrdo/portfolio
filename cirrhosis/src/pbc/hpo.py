@@ -36,18 +36,26 @@ def run_hyperparameter_study(
     random_state: int = 41,
     cv: int = 3,
 ) -> StudyResult:
-    """Optimize RF or LightGBM AUROC with a median-pruner study."""
+    """Optimize cross-validated log-loss with a median-pruner study.
+
+    Log-loss (a proper scoring rule) rather than AUROC: AUROC ignores
+    calibration and happily picks a near-constant, over-shrunk model, whose
+    probabilities are useless for a risk estimate.
+    """
 
     if n_trials < 1:
         raise ValueError("n_trials must be at least one.")
-    if model_name not in {"logistic", "random_forest", "hist_gradient_boosting", "lightgbm"}:
+    if model_name not in {"logistic", "random_forest", "hist_gradient_boosting"}:
         raise ValueError(
-            "Optuna tuning supports logistic, random_forest, hist_gradient_boosting, and lightgbm."
+            "Optuna tuning supports logistic, random_forest, and hist_gradient_boosting."
         )
     try:
         import optuna
     except ImportError as exc:
         raise ImportError("Optuna is optional; install pbc-modeling[optuna].") from exc
+    optuna.logging.set_verbosity(
+        optuna.logging.WARNING
+    )  # one INFO line per trial floods notebooks and CI logs
 
     def objective(trial: Any) -> float:
         native = False
@@ -57,7 +65,6 @@ def run_hyperparameter_study(
 
             estimator = LogisticRegression(
                 max_iter=2000,
-                class_weight="balanced",
                 solver="lbfgs",
                 C=trial.suggest_float("C", 1e-3, 1e2, log=True),
             )
@@ -71,12 +78,11 @@ def run_hyperparameter_study(
                 max_depth=trial.suggest_int("max_depth", 2, 15),
                 min_samples_leaf=trial.suggest_int("min_samples_leaf", 1, 8),
                 max_features=trial.suggest_float("max_features", 0.4, 1.0),
-                class_weight="balanced",
                 random_state=random_state,
                 n_jobs=-1,
             )
             scale = False
-        elif model_name == "hist_gradient_boosting":
+        else:
             from sklearn.ensemble import HistGradientBoostingClassifier
 
             estimator = HistGradientBoostingClassifier(
@@ -86,27 +92,10 @@ def run_hyperparameter_study(
                 learning_rate=trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
                 l2_regularization=trial.suggest_float("l2_regularization", 0.0, 5.0),
                 min_samples_leaf=trial.suggest_int("min_samples_leaf", 5, 40),
-                class_weight="balanced",
                 random_state=random_state,
             )
             scale = False
             native = True
-        else:
-            try:
-                from lightgbm import LGBMClassifier
-            except ImportError as exc:
-                raise ImportError("LightGBM is optional; install pbc-modeling[lgbm].") from exc
-            estimator = LGBMClassifier(
-                n_estimators=trial.suggest_int("n_estimators", 50, 400),
-                learning_rate=trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
-                num_leaves=trial.suggest_int("num_leaves", 7, 63),
-                max_depth=trial.suggest_int("max_depth", 2, 10),
-                min_child_samples=trial.suggest_int("min_child_samples", 5, 40),
-                class_weight="balanced",
-                random_state=random_state,
-                verbosity=-1,
-            )
-            scale = False
         pipeline = build_model_pipeline(
             X_train, estimator, scale_numeric=scale, native_categorical=native, splines=splines
         )
@@ -115,7 +104,7 @@ def run_hyperparameter_study(
             X_train,
             y_train,
             cv=StratifiedKFold(cv, shuffle=True, random_state=random_state),
-            scoring="roc_auc",
+            scoring="neg_log_loss",
             n_jobs=1,
         )
         value = float(np.mean(scores))

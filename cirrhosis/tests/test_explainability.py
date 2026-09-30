@@ -2,9 +2,9 @@ import pytest
 
 pytest.importorskip("shap")
 
-from src.data import load_pbc_data, train_test_split_pipeline  # noqa: E402
-from src.explainability import compute_shap_explanations  # noqa: E402
-from src.modeling import fit_model  # noqa: E402
+from pbc.data import load_pbc_data, train_test_split_pipeline  # noqa: E402
+from pbc.explainability import compute_shap_explanations  # noqa: E402
+from pbc.modeling import fit_model  # noqa: E402
 
 
 @pytest.fixture(scope="module")

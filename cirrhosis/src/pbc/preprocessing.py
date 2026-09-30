@@ -91,8 +91,8 @@ def build_preprocessor(
     within 4 points of P(y=1 | observed) for every predictor) while consuming
     degrees of freedom at events-per-variable ~5.6, and a logistic model's top
     SHAP feature was a missing-indicator rather than a laboratory value --
-    i.e. it was fitting noise. `trial_cohort` remains the one declared,
-    outcome-relevant missingness signal (see `src.data.add_cohort_indicator`).
+    i.e. it was fitting noise. Structural missingness is handled by the
+    feature sets in `pbc.data` (`core` vs `full`), not by indicator columns.
     """
 
     inferred_numeric, inferred_categorical = feature_columns(frame)
@@ -177,10 +177,8 @@ class NativeCategoricalCaster(BaseEstimator, TransformerMixin):
 
     Pairs with `sklearn.ensemble.HistGradientBoostingClassifier(
     categorical_features="from_dtype")`, which natively splits on missing
-    numeric values and on an explicit missing category. This lets the 25% of
-    the cohort with structurally missing labs (the unrandomised registry
-    subcohort, see `src.data.add_cohort_indicator`) inform the model as a
-    signal instead of being papered over by median/KNN imputation.
+    numeric values and on an explicit missing category, so the few scattered missing
+    labs are routed natively instead of being imputed.
     """
 
     def __init__(self, categorical_columns: Iterable[str] | None = None):

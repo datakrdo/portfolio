@@ -1,22 +1,30 @@
 """Small-sample validation: repeated nested cross-validation and optimism
 correction, replacing a single 80/20 split as the headline estimate.
 
-With n=412 and an outer test fold of ~83 rows, a single split gives a 95% CI
-on AUROC roughly 0.26 wide (see `metrics.json` from the original split) --
-too wide to compare models or defend a threshold. Two complementary
+With n=412 (or 312 for the full feature set) and an outer test fold of
+~62-83 rows, a single split gives a 95% CI on AUROC roughly 0.26 wide -- too
+wide to compare models or defend a threshold. Two complementary
 small-sample estimators are provided instead:
 
 - `nested_cv_evaluate`: repeated stratified k-fold outer loop, with threshold
-  selection and (optionally) hyperparameter search confined to each outer
-  training fold. Reports the distribution of metrics across folds rather
-  than a single point estimate.
+  selection (rule-out: max specificity at >= 90% sensitivity) and
+  (optionally) hyperparameter search confined to each outer training fold.
+  Reports the distribution of metrics across folds rather than a single
+  point estimate, plus calibration pooled over all out-of-fold predictions.
 - `bootstrap_optimism_correction`: Harrell's 0.632-style optimism correction,
   which fits on the full 412 rows (no data held out) and subtracts the
   average apparent-vs-original gap measured over bootstrap resamples. This
   is the method Harrell recommends specifically for small clinical cohorts
   where reserving a test set is wasteful.
 
-Both operate on the primary binary endpoint only.
+Both operate on the primary binary endpoint only, on every labeled row of the
+feature set (not a held-out split).
+
+The optimism correction is only valid for smooth, low-capacity models
+(`OPTIMISM_MODELS`). Tree ensembles memorise duplicated bootstrap rows, so
+their apparent-vs-original gap is a poor proxy for optimism and the
+"corrected" AUROC comes out *above* the honest nested-CV estimate; those
+models are reported with nested CV only.
 """
 
 from __future__ import annotations
@@ -30,11 +38,13 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.utils import resample
 
-from .evaluation import binary_metrics, select_operating_threshold
-from .modeling import build_named_pipeline, train_named_model
+from .evaluation import binary_metrics, calibration_slope_intercept, select_operating_threshold
+from .modeling import TUNABLE_MODELS, build_named_pipeline, train_named_model
+
+OPTIMISM_MODELS = frozenset({"logistic", "mayo", "apri"})
 
 
-def _tuned_pipeline(
+def tuned_pipeline(
     model_name: str,
     X_train: pd.DataFrame,
     y_train: np.ndarray,
@@ -68,7 +78,7 @@ def nested_cv_evaluate(
     outer_splits: int = 5,
     outer_repeats: int = 5,
     inner_splits: int = 3,
-    threshold_scoring: str = "balanced_accuracy",
+    threshold_scoring: Any = None,
     random_state: int = 41,
     tune_hyperparameters: bool = True,
     n_trials: int = 10,
@@ -97,17 +107,30 @@ def nested_cv_evaluate(
         n_splits=outer_splits, n_repeats=outer_repeats, random_state=random_state
     )
     fold_metrics: dict[str, list[float]] = {
-        key: [] for key in ("auroc", "auprc", "sensitivity", "specificity", "brier_score")
+        key: []
+        for key in (
+            "auroc",
+            "auprc",
+            "sensitivity",
+            "specificity",
+            "npv",
+            "biopsies_avoided",
+            "brier_score",
+        )
     }
     thresholds: list[float] = []
+    pooled_true: list[np.ndarray] = []
+    pooled_proba: list[np.ndarray] = []
+    # Clinical scores have no hyperparameters to search.
+    tune = tune_hyperparameters and model_name in TUNABLE_MODELS
     for train_idx, test_idx in outer_cv.split(X, y_array):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y_array[train_idx], y_array[test_idx]
         pipeline = (
-            _tuned_pipeline(
+            tuned_pipeline(
                 model_name, X_train, y_train, n_trials=n_trials, random_state=random_state
             )
-            if tune_hyperparameters
+            if tune
             else build_named_pipeline(model_name, X_train, random_state=random_state)
         )
         threshold, tuned = select_operating_threshold(
@@ -123,6 +146,8 @@ def nested_cv_evaluate(
         for key in fold_metrics:
             fold_metrics[key].append(metrics[key])
         thresholds.append(threshold)
+        pooled_true.append(y_test)
+        pooled_proba.append(probabilities)
     summary = {
         key: {
             "mean": float(np.mean(values)),
@@ -134,11 +159,15 @@ def nested_cv_evaluate(
         }
         for key, values in fold_metrics.items()
     }
+    slope, intercept = calibration_slope_intercept(
+        np.concatenate(pooled_true), np.concatenate(pooled_proba)
+    )
     return {
         "model": model_name,
         "n_outer_folds": outer_splits * outer_repeats,
         "fold_metrics": fold_metrics,
         "summary": summary,
+        "calibration": {"slope": slope, "intercept": intercept},
         "median_threshold": float(np.median(thresholds)),
     }
 
@@ -179,9 +208,12 @@ def bootstrap_optimism_correction(
     y_array = np.asarray(y)
     scorers = {"auroc": roc_auc_score, "auprc": average_precision_score}
 
+    if model_name not in OPTIMISM_MODELS:
+        raise ValueError(f"Optimism correction is not valid for {model_name!r}; see module docs.")
+
     def _fresh_pipeline(X_fit: pd.DataFrame, y_fit: np.ndarray) -> Any:
-        if tune_hyperparameters:
-            return _tuned_pipeline(
+        if tune_hyperparameters and model_name in TUNABLE_MODELS:
+            return tuned_pipeline(
                 model_name, X_fit, y_fit, n_trials=n_trials, random_state=random_state
             )
         return build_named_pipeline(model_name, X_fit, random_state=random_state)

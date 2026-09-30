@@ -10,10 +10,12 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from .preprocessing import build_native_preprocessor, build_preprocessor
+from .scores import ScoreTransformer
 
 # Clinically motivated monotonic constraints for HistGradientBoosting when
 # paired with `build_native_preprocessor` (columns kept in their original
@@ -123,6 +125,7 @@ class ModelSpec:
     defaults: Callable[[int], dict[str, Any]]
     scale_numeric: bool = True
     native_categorical: bool = False
+    score: str | None = None  # clinical score baseline: see `pbc.scores`
 
 
 # Single source of truth for every estimator's default hyperparameters and
@@ -130,12 +133,12 @@ class ModelSpec:
 # the previous unregularized `C=1.0` at this sample size (5x5 repeated CV
 # AUROC: 0.708 vs 0.690); HistGB's capacity is deliberately restricted for the
 # same reason (see the plan). `train_named_model` tunes `logistic`,
-# `random_forest`, `hist_gradient_boosting`, and `lightgbm` per outer CV fold
+# `random_forest`, and `hist_gradient_boosting` per outer CV fold
 # via Optuna rather than fixing these by inspecting the scores being reported.
 MODEL_SPECS: dict[str, ModelSpec] = {
     "logistic": ModelSpec(
         LogisticRegression,
-        lambda rs: dict(max_iter=2000, class_weight="balanced", solver="lbfgs", C=0.1),
+        lambda rs: dict(max_iter=2000, solver="lbfgs", C=0.1),
     ),
     "random_forest": ModelSpec(
         RandomForestClassifier,
@@ -143,7 +146,6 @@ MODEL_SPECS: dict[str, ModelSpec] = {
             n_estimators=300,
             min_samples_leaf=10,
             max_features="sqrt",
-            class_weight="balanced",
             random_state=rs,
             n_jobs=-1,
         ),
@@ -158,7 +160,6 @@ MODEL_SPECS: dict[str, ModelSpec] = {
             learning_rate=0.05,
             l2_regularization=5.0,
             min_samples_leaf=25,
-            class_weight="balanced",
             random_state=rs,
         ),
         scale_numeric=False,
@@ -169,27 +170,10 @@ MODEL_SPECS: dict[str, ModelSpec] = {
     ),
     "ordinal_logistic": ModelSpec(CumulativeOrdinalClassifier, lambda rs: {}),
 }
-try:
-    from lightgbm import LGBMClassifier
-except ImportError:
-    pass
-else:
-    MODEL_SPECS["lightgbm"] = ModelSpec(
-        LGBMClassifier,
-        lambda rs: dict(
-            n_estimators=200,
-            learning_rate=0.04,
-            num_leaves=15,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            class_weight="balanced",
-            random_state=rs,
-            verbosity=-1,
-        ),
-        scale_numeric=False,
-    )
+MODEL_SPECS["mayo"] = ModelSpec(LogisticRegression, lambda rs: dict(max_iter=2000), score="mayo")
+MODEL_SPECS["apri"] = ModelSpec(LogisticRegression, lambda rs: dict(max_iter=2000), score="apri")
 
-TUNABLE_MODELS = {"logistic", "random_forest", "hist_gradient_boosting", "lightgbm"}
+TUNABLE_MODELS = {"logistic", "random_forest", "hist_gradient_boosting"}
 
 
 def train_named_model(
@@ -200,9 +184,9 @@ def train_named_model(
     *,
     random_state: int = 41,
 ) -> Pipeline:
-    """Fit one of the four tunable comparators, optionally Optuna-tuned.
+    """Fit one of the three tunable comparators, optionally Optuna-tuned.
 
-    Shared by `train_models` and `src.validation`'s nested-CV inner loop, so
+    Shared by `train_models` and `pbc.validation`'s nested-CV inner loop, so
     both go through the same tuning path instead of one reimplementing it --
     hyperparameter search must sit inside the outer CV fold it is evaluated
     on, not be fixed once from the full data.
@@ -210,8 +194,6 @@ def train_named_model(
 
     if name not in TUNABLE_MODELS:
         raise KeyError(f"Unknown primary model {name!r}.")
-    if name == "lightgbm" and name not in MODEL_SPECS:
-        raise ImportError("LightGBM is optional; install pbc-modeling[lgbm].")
     spec = MODEL_SPECS[name]
     params = spec.defaults(random_state)
     splines = False
@@ -255,12 +237,19 @@ def train_models(
 def build_named_pipeline(name: str, X_train: pd.DataFrame, *, random_state: int = 41) -> Pipeline:
     """Return an unfitted preprocessing-plus-estimator pipeline for `name`."""
 
-    if name == "lightgbm" and name not in MODEL_SPECS:
-        raise ImportError("LightGBM is optional; install pbc-modeling[lgbm].")
     if name not in MODEL_SPECS:
         raise KeyError(f"Unknown model {name!r}; choose from {sorted(MODEL_SPECS)}.")
     spec = MODEL_SPECS[name]
     estimator = spec.estimator_cls(**spec.defaults(random_state))
+    if spec.score:
+        # One-feature recalibration of a fixed score to a stage probability, refit per fold.
+        return Pipeline(
+            [
+                ("preprocess", ScoreTransformer(spec.score)),
+                ("impute", SimpleImputer(strategy="median")),
+                ("model", estimator),
+            ]
+        )
     return build_model_pipeline(
         X_train,
         estimator,

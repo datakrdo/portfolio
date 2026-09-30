@@ -9,7 +9,7 @@ import pandas as pd
 
 from .evaluation import ShapResult
 
-_TREE_ESTIMATOR_SUFFIXES = ("forestclassifier", "lgbmclassifier", "boostingclassifier")
+_TREE_ESTIMATOR_SUFFIXES = ("forestclassifier", "boostingclassifier")
 
 
 def _encode_for_shap(transformed: Any) -> np.ndarray:
@@ -65,13 +65,11 @@ def compute_shap_explanations(
     background = train_transformed[:max_background]
     values_input = test_transformed[:max_samples]
     if is_tree:
-        explainer = shap.TreeExplainer(
-            estimator, data=background, feature_perturbation="interventional"
-        )
-        # LightGBM's raw-score rounding is known to fail SHAP's additivity
-        # check by tiny margins (SHAP #2828); values themselves are unaffected.
-        check_additivity = estimator.__class__.__name__.lower() != "lgbmclassifier"
-        values = explainer(values_input, check_additivity=check_additivity)
+        # tree_path_dependent (SHAP's default, no background set): the interventional
+        # variant fails the additivity check on the unweighted HistGB (the sum of
+        # SHAP values drifts ~0.15 log-odds from the model output).
+        explainer = shap.TreeExplainer(estimator)
+        values = explainer(values_input)
         shap_values = values.values if hasattr(values, "values") else values
         expected = (
             values.base_values if hasattr(values, "base_values") else explainer.expected_value

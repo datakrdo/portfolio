@@ -24,10 +24,10 @@ jobs:
         run: uv sync --all-extras
 
       - name: Lint (ruff check)
-        run: uv run ruff check src/ scripts/ tests/
+        run: uv run ruff check src/ tests/ app/ notebooks/
 
       - name: Format check (ruff format)
-        run: uv run ruff format --check src/ scripts/ tests/
+        run: uv run ruff format --check src/ tests/ app/
 
       - name: Test (pytest)
         run: uv run pytest -q
@@ -35,16 +35,18 @@ jobs:
       - name: No-leakage smoke test
         run: |
           uv run python -c "
-          from src.data import load_pbc_data, train_test_split_pipeline
-          from src.modeling import build_named_pipeline
+          from pbc.data import FEATURE_SETS, load_pbc_data, train_test_split_pipeline
+          from pbc.modeling import build_named_pipeline
 
           frame = load_pbc_data()
-          split = train_test_split_pipeline(frame)
-          assert 'Drug' not in split.X_train.columns
-          for name in ['logistic', 'random_forest', 'hist_gradient_boosting']:
-              pipe = build_named_pipeline(name, split.X_train)
-              pipe.fit(split.X_train, split.y_binary_train)
-              names = pipe.named_steps['preprocess'].get_feature_names_out()
-              assert not any('drug' in n.lower() for n in names), (name, names)
+          banned = {'drug', 'trial_cohort', 'id', 'n_days', 'status', 'stage'}
+          for feature_set, columns in FEATURE_SETS.items():
+              assert not banned & {c.lower() for c in columns}, feature_set
+              split = train_test_split_pipeline(frame, feature_set=feature_set)
+              for name in ['logistic', 'random_forest', 'hist_gradient_boosting']:
+                  pipe = build_named_pipeline(name, split.X_train)
+                  pipe.fit(split.X_train, split.y_binary_train)
+                  names = pipe.named_steps['preprocess'].get_feature_names_out()
+                  assert not any(n.lower().split('_')[0] in banned for n in names), (feature_set, name, names)
           print('No-leakage assertion passed.')
           "

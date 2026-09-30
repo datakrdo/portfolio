@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from src.preprocessing import (
+from pbc.preprocessing import (
     MISSING_CATEGORY,
     build_native_preprocessor,
     build_preprocessor,

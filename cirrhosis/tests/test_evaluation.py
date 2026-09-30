@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.evaluation import (
+from pbc.evaluation import (
     binary_metrics,
     bootstrap_metric_intervals,
     calibration_metrics,

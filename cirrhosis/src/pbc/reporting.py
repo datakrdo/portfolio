@@ -70,7 +70,7 @@ def build_table_one(frame: Any, *, group_col: str = "trial_cohort") -> Any:
     variables as median [IQR] per group, categorical variables as n (%) per
     group. Defaults to stratifying by `trial_cohort` (randomised vs registry)
     since that split explains this cohort's structural missingness -- see
-    `src.data.add_cohort_indicator`.
+    `pbc.data.add_cohort_indicator`.
     """
 
     import pandas as pd

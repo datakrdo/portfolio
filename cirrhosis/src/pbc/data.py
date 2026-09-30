@@ -32,7 +32,6 @@ EXPECTED_COLUMNS = [
     "Prothrombin",
     "Stage",
 ]
-LEAKAGE_COLUMNS = ["Stage", "ID", "N_Days", "Status", "Drug"]
 NUMERIC_COLUMNS: Final[tuple[str, ...]] = (
     "ID",
     "N_Days",
@@ -67,6 +66,36 @@ CATEGORICAL_COLUMNS: Final[tuple[str, ...]] = (
 # `add_cohort_indicator` and the EDA notebook for the verification.
 TRIAL_COHORT_MAX_ID: Final[int] = 312
 COHORT_COLUMN = "trial_cohort"
+
+# Deployable predictors only: what a clinician has at the visit. `trial_cohort`
+# is deliberately NOT a predictor (it is an artefact of how the 1974-84 cohort
+# was recruited and does not exist for a new patient); it survives only as the
+# Table 1 stratifier. The two feature sets encode the structural missingness
+# explicitly instead of imputing across it:
+#   core: variables recorded for all 412 labeled patients (bedside + basic labs).
+#   full: core + the extended panel, recorded only for the 312 randomised-trial
+#         patients (ID <= TRIAL_COHORT_MAX_ID), so that model is fit on them alone.
+CORE_FEATURES: Final[tuple[str, ...]] = (
+    "Age",
+    "Sex",
+    "Edema",
+    "Bilirubin",
+    "Albumin",
+    "Platelets",
+    "Prothrombin",
+)
+FULL_FEATURES: Final[tuple[str, ...]] = (
+    *CORE_FEATURES,
+    "Ascites",
+    "Hepatomegaly",
+    "Spiders",
+    "Cholesterol",
+    "Copper",
+    "Alk_Phos",
+    "SGOT",
+    "Tryglicerides",
+)
+FEATURE_SETS: Final[dict[str, tuple[str, ...]]] = {"core": CORE_FEATURES, "full": FULL_FEATURES}
 
 
 @dataclass(frozen=True)
@@ -157,9 +186,8 @@ def add_cohort_indicator(frame: pd.DataFrame) -> pd.DataFrame:
 
     The randomised D-penicillamine trial enrolled patients ID 1-312; ID 313-418
     is an unrandomised registry cohort with no `Drug` assignment and no
-    laboratory/clinical follow-up block. Modeling this split explicitly, instead
-    of silently imputing across it, keeps the two subcohorts distinguishable to
-    the model and to the reader.
+    laboratory/clinical follow-up block. Used only to stratify Table 1: it is not
+    a model input, because a new patient has no cohort.
     """
 
     if "ID" not in frame.columns:
@@ -172,19 +200,38 @@ def add_cohort_indicator(frame: pd.DataFrame) -> pd.DataFrame:
     return enriched
 
 
-def predictor_frame(labeled: pd.DataFrame) -> pd.DataFrame:
-    """Return predictors with identifiers, follow-up, and outcome metadata removed.
+def predictor_frame(labeled: pd.DataFrame, feature_set: str = "core") -> pd.DataFrame:
+    """Return the predictors of `feature_set`, in a fixed column order.
 
-    Adds the derived `trial_cohort` indicator and then drops `LEAKAGE_COLUMNS`
-    (which includes `Drug`, since a null `Drug` perfectly identifies the
-    registry cohort and the trial found no drug effect on outcome).
+    Identifiers, follow-up (`N_Days`, `Status`), the outcome, and `Drug` are never
+    selected: a null `Drug` perfectly identifies the registry cohort and the trial
+    found no drug effect on outcome. Row filtering for the `full` set is done by
+    `select_feature_set`, not here.
     """
 
-    missing = set(LEAKAGE_COLUMNS) - set(labeled.columns)
+    if feature_set not in FEATURE_SETS:
+        raise KeyError(f"Unknown feature set {feature_set!r}; choose from {sorted(FEATURE_SETS)}.")
+    columns = list(FEATURE_SETS[feature_set])
+    missing = set(columns) - set(labeled.columns)
     if missing:
-        raise ValueError(f"Missing leakage columns: {sorted(missing)}.")
-    enriched = add_cohort_indicator(labeled)
-    return enriched.drop(columns=LEAKAGE_COLUMNS)
+        raise ValueError(f"Missing predictor columns: {sorted(missing)}.")
+    return labeled[columns].copy()
+
+
+def select_feature_set(
+    frame: pd.DataFrame, feature_set: str = "core"
+) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
+    """Labeled predictors and both targets for one feature set.
+
+    `full` keeps only randomised-trial patients (the only ones with the extended
+    panel); `core` keeps every labeled patient.
+    """
+
+    labeled, y_binary, y_stage = make_targets(frame)
+    if feature_set == "full":
+        keep = labeled["ID"] <= TRIAL_COHORT_MAX_ID
+        labeled, y_binary, y_stage = labeled[keep], y_binary[keep], y_stage[keep]
+    return predictor_frame(labeled, feature_set), y_binary, y_stage
 
 
 def events_per_variable(X: pd.DataFrame, y: pd.Series) -> float:
@@ -205,25 +252,22 @@ def events_per_variable(X: pd.DataFrame, y: pd.Series) -> float:
 def train_test_split_pipeline(
     frame: pd.DataFrame,
     *,
+    feature_set: str = "core",
     test_size: float = 0.2,
     random_state: int = 41,
 ) -> DatasetSplit:
     """Split labeled patients before any fitted preprocessing is applied.
 
-    Stratifies on the binary endpoint crossed with `trial_cohort`, so both the
-    randomised and registry subcohorts are represented proportionally in train
-    and test rather than left to chance.
+    Stratifies on the binary endpoint only: the `full` set contains one cohort
+    and the `core` set spans both, and cohort is not a model input.
     """
 
-    labeled, y_binary, y_stage = make_targets(frame)
-    X = predictor_frame(labeled)
-    indices = X.index
-    strata = y_binary.astype(str) + "_" + X[COHORT_COLUMN].astype(str)
+    X, y_binary, y_stage = select_feature_set(frame, feature_set)
     train_idx, test_idx = train_test_split(
-        indices,
+        X.index,
         test_size=test_size,
         random_state=random_state,
-        stratify=strata,
+        stratify=y_binary,
     )
     return DatasetSplit(
         X_train=X.loc[train_idx],

@@ -1,5 +1,5 @@
-from src.data import load_pbc_data, train_test_split_pipeline
-from src.validation import bootstrap_optimism_correction, nested_cv_evaluate
+from pbc.data import load_pbc_data, train_test_split_pipeline
+from pbc.validation import bootstrap_optimism_correction, nested_cv_evaluate
 
 
 def _small_split():
@@ -42,7 +42,7 @@ def test_nested_cv_evaluate_tunes_hyperparameters_per_outer_fold():
     training partition."""
     from sklearn.model_selection import StratifiedKFold
 
-    from src.hpo import run_hyperparameter_study
+    from pbc.hpo import run_hyperparameter_study
 
     X, y = _small_split()
     outer_cv_splits = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=41).split(X, y))

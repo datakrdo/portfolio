@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.data import (
+from pbc.data import (
     EXPECTED_COLUMNS,
     load_pbc_data,
     make_targets,
