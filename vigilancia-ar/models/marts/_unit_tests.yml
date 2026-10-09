@@ -1,0 +1,82 @@
+version: 2
+
+unit_tests:
+  - name: endemic_corridor_assigns_zone_from_prior_years
+    description: >
+      Thresholds are the p25/p50/p75 of the same epi week over the prior years (here
+      0/10/20 -> 5/10/15). A count equal to a threshold falls in the lower zone, the
+      first years have a partial or empty baseline, and a year without any prior
+      history gets no zone at all.
+    model: mart_endemic_corridor
+    given:
+      - input: ref('fct_weekly_cases')
+        rows:
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2020, epi_week: 1, case_count: 0}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2021, epi_week: 1, case_count: 10}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2022, epi_week: 1, case_count: 20}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 1, case_count: 3}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2020, epi_week: 2, case_count: 0}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2021, epi_week: 2, case_count: 10}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2022, epi_week: 2, case_count: 20}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 2, case_count: 10}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2020, epi_week: 3, case_count: 0}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2021, epi_week: 3, case_count: 10}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2022, epi_week: 3, case_count: 20}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 3, case_count: 12}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2020, epi_week: 4, case_count: 0}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2021, epi_week: 4, case_count: 10}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2022, epi_week: 4, case_count: 20}
+          - {department_indec_id: '14014', event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 4, case_count: 30}
+      - input: ref('dim_geography')
+        rows:
+          - {department_indec_id: '14014', province_indec_id: '14', province_name: Córdoba, is_unknown: false}
+      - input: ref('int_province_population')
+        rows:
+          - {province_indec_id: '14', publish_date: '2024-08-01', population: 1000}
+    expect:
+      rows:
+      - {province_indec_id: '14', event_code: DENGUE, year: 2020, epi_week: 1, case_count: 0, n_years_in_corridor: null, corridor_zone: null}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2021, epi_week: 1, case_count: 10, n_years_in_corridor: 1, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2022, epi_week: 1, case_count: 20, n_years_in_corridor: 2, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2023, epi_week: 1, case_count: 3, n_years_in_corridor: 3, corridor_zone: Éxito}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2020, epi_week: 2, case_count: 0, n_years_in_corridor: null, corridor_zone: null}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2021, epi_week: 2, case_count: 10, n_years_in_corridor: 1, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2022, epi_week: 2, case_count: 20, n_years_in_corridor: 2, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2023, epi_week: 2, case_count: 10, n_years_in_corridor: 3, corridor_zone: Seguridad}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2020, epi_week: 3, case_count: 0, n_years_in_corridor: null, corridor_zone: null}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2021, epi_week: 3, case_count: 10, n_years_in_corridor: 1, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2022, epi_week: 3, case_count: 20, n_years_in_corridor: 2, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2023, epi_week: 3, case_count: 12, n_years_in_corridor: 3, corridor_zone: Alerta}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2020, epi_week: 4, case_count: 0, n_years_in_corridor: null, corridor_zone: null}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2021, epi_week: 4, case_count: 10, n_years_in_corridor: 1, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2022, epi_week: 4, case_count: 20, n_years_in_corridor: 2, corridor_zone: Brote}
+      - {province_indec_id: '14', event_code: DENGUE, year: 2023, epi_week: 4, case_count: 30, n_years_in_corridor: 3, corridor_zone: Brote}
+
+  - name: outbreaks_group_consecutive_brote_weeks
+    description: >
+      Two runs of "Brote" weeks become two episodes; a week without a corridor
+      (null zone, high count) and an "Alerta" week break the run and are not counted.
+    model: mart_outbreaks
+    given:
+      - input: ref('mart_endemic_corridor')
+        rows:
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 1, case_count: 100, population: 1000, corridor_zone: Brote}
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 2, case_count: 300, population: 1000, corridor_zone: Brote}
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 3, case_count: 50, population: 1000, corridor_zone: Alerta}
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 4, case_count: 400, population: 1000, corridor_zone: null}
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 5, case_count: 200, population: 1000, corridor_zone: Brote}
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 6, case_count: 500, population: 1000, corridor_zone: Brote}
+          - {province_indec_id: '14', province_name: Córdoba, event_code: DENGUE, event_name: Dengue, year: 2023, epi_week: 7, case_count: 100, population: 1000, corridor_zone: Brote}
+      - input: ref('dim_epi_week')
+        rows:
+          - {year: 2023, epi_week: 1, week_start_date: '2023-01-01', week_end_date: '2023-01-07'}
+          - {year: 2023, epi_week: 2, week_start_date: '2023-01-08', week_end_date: '2023-01-14'}
+          - {year: 2023, epi_week: 3, week_start_date: '2023-01-15', week_end_date: '2023-01-21'}
+          - {year: 2023, epi_week: 4, week_start_date: '2023-01-22', week_end_date: '2023-01-28'}
+          - {year: 2023, epi_week: 5, week_start_date: '2023-01-29', week_end_date: '2023-02-04'}
+          - {year: 2023, epi_week: 6, week_start_date: '2023-02-05', week_end_date: '2023-02-11'}
+          - {year: 2023, epi_week: 7, week_start_date: '2023-02-12', week_end_date: '2023-02-18'}
+    expect:
+      rows:
+        - {province_indec_id: '14', event_code: DENGUE, outbreak_id: 0, outbreak_start_date: '2023-01-01', outbreak_end_date: '2023-01-14', duration_weeks: 2, total_cases: 400, peak_case_count: 300, peak_week_start_date: '2023-01-08', peak_year_population: 1000, attack_rate_per_100k: 40000.0, peak_incidence_rate_per_100k: 30000.0}
+        - {province_indec_id: '14', event_code: DENGUE, outbreak_id: 2, outbreak_start_date: '2023-01-29', outbreak_end_date: '2023-02-18', duration_weeks: 3, total_cases: 800, peak_case_count: 500, peak_week_start_date: '2023-02-05', peak_year_population: 1000, attack_rate_per_100k: 80000.0, peak_incidence_rate_per_100k: 50000.0}

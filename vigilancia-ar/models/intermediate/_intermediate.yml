@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: int_dengue_zika_all_revisions
+    description: >
+      Every published revision of every period, with geography and age group resolved
+      against the Georef and age-bucket seeds. Grain: event x department x age group x
+      epi week x year x publication.
+    columns:
+      - name: department_indec_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: department_indec_id
+      - name: age_group_name
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_age_group')
+                field: age_group_name
+      - name: published_date
+        tests:
+          - not_null
+      - name: case_count
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - department_indec_id
+              - event
+              - age_group_name
+              - year
+              - epi_week
+              - published_date
+
+  - name: int_dengue_zika_unified
+    description: >
+      One canonical row per period: the latest published revision of each year.
+      Grain: event x department x age group x epi week x year.
+    columns:
+      - name: case_count
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - department_indec_id
+              - event
+              - age_group_name
+              - year
+              - epi_week
+
+  - name: int_renaper_population
+    description: >
+      RENAPER population resolved to the canonical Georef department. Grain:
+      department x publish date. Unmatched departments fall back to the province's
+      synthetic "Unknown" member.
+    columns:
+      - name: department_indec_id
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [publish_date, department_indec_id]
+
+  - name: int_province_population
+    description: >
+      Population aggregated to province x publish date, the denominator for the
+      province-level marts.
+    columns:
+      - name: population
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [publish_date, province_indec_id]

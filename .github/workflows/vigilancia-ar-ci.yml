@@ -10,75 +10,101 @@ on:
     paths:
       - "vigilancia-ar/**"
       - ".github/workflows/vigilancia-ar-ci.yml"
+  # The source publishes irregularly (anywhere from a week to months apart), so check
+  # weekly; the job only rebuilds when scripts/fetch_data.py finds a new or changed file.
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vigilancia-ar-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: vigilancia-ar
 
 jobs:
+  # No warehouse connection needed: sqlfluff's dbt templater and `dbt parse` only
+  # compile, so this runs without secrets (works on PRs from forks too).
   lint-and-parse:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    defaults:
-      run:
-        working-directory: vigilancia-ar
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: vigilancia-ar/uv.lock
 
-      - name: Install dependencies
-        run: pip install dbt-databricks sqlfluff sqlfluff-templater-dbt
+      - run: uv sync --frozen
 
-      - name: Write CI dbt profile (token auth, no local oauth creds needed)
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      - name: Dummy dbt profile (compile only, never connects)
         run: |
           mkdir -p ~/.dbt
           cat > ~/.dbt/profiles.yml <<EOF
           vigilancia_ar:
-            target: ci
+            target: dev
             outputs:
-              ci:
+              dev:
                 type: databricks
                 catalog: workspace
-                schema: ci_vigilancia_ar
-                host: "${DATABRICKS_HOST}"
-                http_path: "${DATABRICKS_HTTP_PATH}"
-                token: "${DATABRICKS_TOKEN}"
-                threads: 4
+                schema: ci_parse_only
+                host: example.cloud.databricks.com
+                http_path: /sql/1.0/warehouses/none
+                token: none
+                threads: 1
           EOF
 
-      - name: dbt deps
-        run: dbt deps
+      - run: uv run dbt deps
 
-      - name: sqlfluff lint
-        run: sqlfluff lint models/
+      - run: uv run sqlfluff lint models/ analyses/ tests/
 
-      - name: dbt parse
-        run: dbt parse --target ci
+      - run: uv run dbt parse
 
   build:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    defaults:
-      run:
-        working-directory: vigilancia-ar
+    if: github.event_name != 'pull_request'
+    outputs:
+      refreshed: ${{ steps.gate.outputs.refreshed }}
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: vigilancia-ar/uv.lock
 
-      - name: Install dependencies
-        run: pip install dbt-databricks
+      - run: uv sync --frozen --group ingest
 
-      - name: Write CI dbt profile (token auth)
+      - uses: databricks/setup-cli@main
+
+      - name: Fetch raw files and sync new ones to the Volume
+        id: fetch
+        run: uv run python scripts/fetch_data.py --upload /Volumes/workspace/bronze/raw_data
+
+      # Scheduled runs with nothing new stop here. Pushes and manual runs always build.
+      - name: Decide whether to rebuild
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ steps.fetch.outputs.uploaded }}" != "0" ]; then
+            echo "refreshed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "refreshed=false" >> "$GITHUB_OUTPUT"
+            echo "No new source files; skipping build."
+          fi
+
+      - name: dbt profile (token auth)
+        if: steps.gate.outputs.refreshed == 'true'
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           mkdir -p ~/.dbt
           cat > ~/.dbt/profiles.yml <<EOF
@@ -89,14 +115,90 @@ jobs:
                 type: databricks
                 catalog: workspace
                 schema: dev_vigilancia_ar
-                host: "${DATABRICKS_HOST}"
+                host: "${DATABRICKS_HOST#https://}"
                 http_path: "${DATABRICKS_HTTP_PATH}"
                 token: "${DATABRICKS_TOKEN}"
                 threads: 4
           EOF
 
-      - name: dbt deps
-        run: dbt deps
+      - name: dbt deps, build (models, seeds, snapshot, tests, unit tests), docs
+        if: steps.gate.outputs.refreshed == 'true'
+        run: |
+          uv run dbt deps
+          uv run dbt build --target ci
+          uv run dbt docs generate --target ci --static
 
-      - name: dbt build
-        run: dbt build --target ci
+      - name: Upload dbt docs
+        if: steps.gate.outputs.refreshed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: vigilancia-ar/target/static_index.html
+
+      # The site's findings page runs the compiled analyses/ SQL (see site/src/data/_db.py).
+      - name: Upload compiled analyses
+        if: steps.gate.outputs.refreshed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-analyses
+          path: vigilancia-ar/target/compiled/vigilancia_ar/analyses
+
+  # Public site: Observable Framework (site/) + dbt docs, on GitHub Pages.
+  pages:
+    needs: build
+    if: needs.build.outputs.refreshed == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: vigilancia-ar/uv.lock
+
+      - run: uv sync --frozen --group site
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vigilancia-ar/site/package-lock.json
+
+      - run: npm ci
+        working-directory: vigilancia-ar/site
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: compiled-analyses
+          path: vigilancia-ar/target/compiled/vigilancia_ar/analyses
+
+      # Data loaders (site/src/data/*.py, run through `uv run` per observablehq.config.js)
+      # query the marts and write Parquet at build time.
+      - run: npm run build
+        working-directory: vigilancia-ar/site
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dbt-docs
+          path: vigilancia-ar/site/dist/dbt
+
+      - run: mv vigilancia-ar/site/dist/dbt/static_index.html vigilancia-ar/site/dist/dbt/index.html
+        working-directory: ${{ github.workspace }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: vigilancia-ar/site/dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

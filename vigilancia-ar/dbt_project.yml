@@ -35,3 +35,11 @@ seeds:
         # drops the leading zeros these INDEC codes rely on (e.g. "02021" -> 2021)
         department_indec_id: string
         province_indec_id: string
+    rls_province_access:
+      +column_types:
+        province_indec_id: string
+
+vars:
+  # Unity Catalog Volume holding the raw CSVs (see scripts/fetch_data.py). Not a dbt
+  # `source()`: read_files() parses files with a per-file schema, not registered tables.
+  raw_volume_path: /Volumes/workspace/bronze/raw_data

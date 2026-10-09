@@ -16,8 +16,10 @@
 -- against Georef by name (same approach as `int_dengue_zika_unified`, since this
 -- raw id doesn't reliably match Georef's own department numbering either).
 --
--- Publish dates aren't in the filenames as a parseable date, just a month/year
--- (e.g. `_agosto_2024`) — mapped explicitly per file since there are only 4.
+-- Publish dates aren't in the filenames as a parseable date, just a Spanish month name
+-- and year (e.g. `_agosto_2024`), so the first day of that month is derived from the
+-- name. An unrecognised month yields a null date and fails the `not_null` test on
+-- `publish_date` instead of silently dropping the cut.
 
 with source as (
 
@@ -29,7 +31,7 @@ with source as (
         cantidad as population,
         _metadata.file_path as _source_file
     from read_files(
-        '/Volumes/workspace/bronze/raw_data/renaper_population/*.csv',
+        '{{ var("raw_volume_path") }}/renaper_population/*.csv',
         format => 'csv',
         header => true,
         schema => 'provincia_id STRING, nombre_provincia STRING, departamento_id STRING, nombre_departamento STRING, sexo STRING, edad_quinquenal STRING, nacionalidad STRING, pais_nacimiento STRING, cantidad INT'
@@ -41,12 +43,26 @@ with_publish_date as (
 
     select
         *,
-        case
-            when _source_file like '%departamento_agosto_2024.csv' then date('2024-08-01')
-            when _source_file like '%departamento_enero_2025.csv' then date('2025-01-01')
-            when _source_file like '%departamento_junio_2025.csv' then date('2025-06-01')
-            when _source_file like '%departamento_junio_2026.csv' then date('2026-06-01')
-        end as publish_date,
+        to_date(
+            concat(
+                regexp_extract(_source_file, '_([0-9]{4})\\.csv$', 1),
+                '-',
+                lpad(
+                    cast(
+                        array_position(
+                            array(
+                                'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+                            ),
+                            regexp_extract(_source_file, '_([a-z]+)_[0-9]{4}\\.csv$', 1)
+                        ) as string
+                    ),
+                    2,
+                    '0'
+                ),
+                '-01'
+            )
+        ) as publish_date,
         lpad(departamento_id, 5, '0') as department_id_padded
     from source
 

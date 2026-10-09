@@ -11,3 +11,15 @@ dev = [
     "sqlfluff>=3.0.0",
     "sqlfluff-templater-dbt>=3.0.0",
 ]
+
+# raw-data download + Excel conversion (scripts/fetch_data.py)
+ingest = [
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "xlrd>=2.0",
+]
+# Parquet export for the public site (site/src/data/*.py)
+site = [
+    "databricks-sql-connector>=4.0",
+    "pyarrow>=17",
+]

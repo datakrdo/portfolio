@@ -33,7 +33,18 @@ canonical_file_per_year as (
 
 )
 
-select r.*
+select
+    r.schema_era,
+    r.department_indec_id,
+    r.year,
+    r.epi_week,
+    r.event,
+    r.age_group_name,
+    r.age_group_sort_order,
+    r.case_count,
+    r.published_date,
+    r._source_file,
+    r._loaded_at
 from all_revisions r
 inner join canonical_file_per_year c
     on r.year = c.year and r._source_file = c._source_file

@@ -17,6 +17,9 @@ data/raw/*
 # OS files
 .DS_Store
 
+# Internal working notes (kept locally, not published)
+plan.md
+
 # Agent scaffolding (working notes; not part of the published portfolio)
 .clinerules/
 .agents/

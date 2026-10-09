@@ -34,7 +34,7 @@ with semicolon_latin1 as (
         cast(cast(cantidad_casos as double) as int) as case_count,
         _metadata.file_path as _source_file
     from read_files(
-        '/Volumes/workspace/bronze/raw_data/dengue_zika/legacy/informacion-publica-dengue-zika-nacional-anio-2022.csv',
+        '{{ var("raw_volume_path") }}/dengue_zika/legacy/informacion-publica-dengue-zika-nacional-anio-2022.csv',
         format => 'csv',
         header => true,
         delimiter => ';',
@@ -84,7 +84,7 @@ comma_variants as (
         _metadata.file_path as _source_file
     from
         read_files(
-            '/Volumes/workspace/bronze/raw_data/dengue_zika/legacy/*.csv',
+            '{{ var("raw_volume_path") }}/dengue_zika/legacy/*.csv',
             format => 'csv',
             header => true,
             encoding => 'UTF-8',

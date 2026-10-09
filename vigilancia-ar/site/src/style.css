@@ -1,0 +1,43 @@
+/* `style` replaces `theme` in observablehq.config.js, so the themes are imported here:
+   light "air" and dark "near-midnight" by OS preference. */
+@import url("observablehq:default.css");
+@import url("observablehq:theme-air.css") (prefers-color-scheme: light);
+@import url("observablehq:theme-near-midnight.css") (prefers-color-scheme: dark);
+
+:root {
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --line: #d9d8d3;
+  --alert: #e34948;
+  --accent: #2a78d6;
+  --land: #f0efec;
+  --brand-font: ui-serif, "Iowan Old Style", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --line: #383835;
+    --alert: #e66767;
+    --accent: #3987e5;
+    --land: #262624;
+  }
+}
+body { max-width: 1120px; margin: 0 auto; }
+h1 { font-family: var(--brand-font); font-weight: 600; font-size: 2.6rem; letter-spacing: -0.02em; max-width: 22ch; }
+.lede { font-size: 1.2rem; line-height: 1.5; color: var(--ink-2); max-width: 62ch; }
+a.brand { font-family: var(--brand-font); font-size: 1.15rem; text-decoration: none; color: var(--ink); }
+a.brand b { color: var(--alert); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.kpi { border-top: 3px solid var(--ink); padding-top: .5rem; }
+.kpi.alert { border-top-color: var(--alert); }
+.kpi .n { font-family: var(--brand-font); font-size: 2.4rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--ink-2); font-size: .9rem; }
+.fineprint { color: var(--ink-2); font-size: .9rem; max-width: 70ch; }
+.finding { border-left: 3px solid var(--line); padding-left: 1rem; margin: 2.5rem 0 .5rem; }
+.finding h2 { margin-top: 0; font-family: var(--brand-font); }
+.finding .so-what { font-weight: 600; }
+.controls { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: end; }
+@media (max-width: 640px) { h1 { font-size: 2rem; } }

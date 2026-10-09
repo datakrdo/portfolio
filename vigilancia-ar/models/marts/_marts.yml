@@ -36,7 +36,51 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [true, false]
+              arguments:
+                values: [true, false]
+
+  - name: dim_province
+    description: >
+      Province dimension (incl. the synthetic "Unknown" province), derived from
+      `dim_geography`. Shared filter and RLS anchor for the BI model.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: province_indec_id
+        data_type: string
+        tests:
+          - unique
+          - not_null
+      - name: province_name
+        data_type: string
+        tests:
+          - not_null
+
+  - name: dim_user_access
+    description: >
+      Which provinces each (fictitious) user may see; drives the "Provincial"
+      row-level-security role in the Power BI model.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: user_email
+        data_type: string
+        tests:
+          - not_null
+      - name: province_indec_id
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_province')
+                field: province_indec_id
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [user_email, province_indec_id]
 
   - name: dim_age_group
     description: Canonical age-group buckets, sourced from the `age_group_buckets` seed.
@@ -72,7 +116,8 @@ models:
           - unique
           - not_null
           - accepted_values:
-              values: ['DENGUE', 'DENGUE_GESTATIONAL', 'ZIKA']
+              arguments:
+                values: ['DENGUE', 'DENGUE_GESTATIONAL', 'ZIKA']
 
   - name: dim_epi_week
     description: Epidemiological week calendar (PAHO/CDC convention).
@@ -98,7 +143,8 @@ models:
           - not_null
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [year, epi_week]
+          arguments:
+            combination_of_columns: [year, epi_week]
 
   - name: fct_weekly_cases
     description: >
@@ -113,15 +159,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_geography')
-              field: department_indec_id
+              arguments:
+                to: ref('dim_geography')
+                field: department_indec_id
       - name: event_code
         data_type: string
         tests:
           - not_null
           - relationships:
-              to: ref('dim_event')
-              field: event_code
+              arguments:
+                to: ref('dim_event')
+                field: event_code
       - name: event_name
         data_type: string
         tests:
@@ -131,8 +179,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_age_group')
-              field: age_group_name
+              arguments:
+                to: ref('dim_age_group')
+                field: age_group_name
       - name: age_group_sort_order
         data_type: bigint
         tests:
@@ -159,12 +208,13 @@ models:
           - not_null
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - department_indec_id
-            - event_code
-            - age_group_name
-            - year
-            - epi_week
+          arguments:
+            combination_of_columns:
+              - department_indec_id
+              - event_code
+              - age_group_name
+              - year
+              - epi_week
 
   - name: mart_incidence_rates
     description: >
@@ -182,8 +232,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_geography')
-              field: department_indec_id
+              arguments:
+                to: ref('dim_geography')
+                field: department_indec_id
       - name: event_code
         data_type: string
         tests:
@@ -222,11 +273,12 @@ models:
         data_type: bigint
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - department_indec_id
-            - event_code
-            - year
-            - epi_week
+          arguments:
+            combination_of_columns:
+              - department_indec_id
+              - event_code
+              - year
+              - epi_week
 
   - name: mart_endemic_corridor
     description: >
@@ -281,14 +333,16 @@ models:
         data_type: string
         tests:
           - accepted_values:
-              values: ['Éxito', 'Seguridad', 'Alerta', 'Brote']
+              arguments:
+                values: ['Éxito', 'Seguridad', 'Alerta', 'Brote']
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - province_indec_id
-            - event_code
-            - year
-            - epi_week
+          arguments:
+            combination_of_columns:
+              - province_indec_id
+              - event_code
+              - year
+              - epi_week
 
   - name: mart_outbreaks
     description: >
@@ -350,10 +404,11 @@ models:
         data_type: double
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - province_indec_id
-            - event_code
-            - outbreak_id
+          arguments:
+            combination_of_columns:
+              - province_indec_id
+              - event_code
+              - outbreak_id
 
   - name: mart_revisions
     description: >
@@ -410,10 +465,11 @@ models:
           - not_null
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - department_indec_id
-            - event
-            - age_group_name
-            - year
-            - epi_week
-            - published_date
+          arguments:
+            combination_of_columns:
+              - department_indec_id
+              - event
+              - age_group_name
+              - year
+              - epi_week
+              - published_date

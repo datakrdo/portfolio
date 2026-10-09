@@ -35,7 +35,7 @@ with utf8_2023 as (
         _metadata.file_path as _source_file
     from
         read_files(
-            '/Volumes/workspace/bronze/raw_data/dengue_zika/current/informacion-publica-dengue-zika-nacional-se-1-a-52-de-2023-2024-06-10.csv',
+            '{{ var("raw_volume_path") }}/dengue_zika/current/informacion-publica-dengue-zika-nacional-se-1-a-52-de-2023-2024-06-10.csv',
             format => 'csv',
             header => true,
             delimiter => ';',
@@ -62,7 +62,7 @@ latin1_variants as (
         _metadata.file_path as _source_file
     from
         read_files(
-            '/Volumes/workspace/bronze/raw_data/dengue_zika/current/*.csv',
+            '{{ var("raw_volume_path") }}/dengue_zika/current/*.csv',
             format => 'csv',
             header => true,
             delimiter => ';',
