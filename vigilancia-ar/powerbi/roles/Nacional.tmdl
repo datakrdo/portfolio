@@ -1,4 +1,0 @@
-role Nacional
-	modelPermission: read
-
-	/// National team: no row or object restriction.

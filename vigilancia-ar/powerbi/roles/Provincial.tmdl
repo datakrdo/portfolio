@@ -1,9 +1,0 @@
-role Provincial
-	modelPermission: read
-
-	/// Row-level security: a provincial referent only sees the provinces mapped to
-	/// their login in dim_user_access (seed rls_province_access). dim_province filters
-	/// the province-grain tables directly; dim_geography reaches department-grain ones.
-	tablePermission dim_province = [province_indec_id] IN CALCULATETABLE(VALUES(dim_user_access[province_indec_id]), dim_user_access[user_email] = USERPRINCIPALNAME())
-
-	tablePermission dim_geography = [province_indec_id] IN CALCULATETABLE(VALUES(dim_user_access[province_indec_id]), dim_user_access[user_email] = USERPRINCIPALNAME())

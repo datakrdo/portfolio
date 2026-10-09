@@ -35,10 +35,11 @@ differently, let me know at the email above.
 
 ## SQL 🗃️
 
-- **[vigilancia-ar](vigilancia-ar)** 🦟 — analytics engineering on Argentina's Dengue/Zika
-  epidemiological surveillance data with dbt-databricks: marts with enforced contracts,
-  SCD2 snapshots, and advanced SQL analyses (regression, haversine distance, Gini,
-  log-Poisson confidence intervals) answering real resource-allocation questions.
+- **[vigilancia-respiratoria-ar](https://github.com/datakrdo/vigilancia-respiratoria-ar)** 🫁 — analytics engineering on Argentina's
+  respiratory infections and Dengue surveillance data (SNVS 2.0) with dbt-databricks: marts with enforced
+  contracts, incremental loads, SCD2 snapshots, advanced SQL analyses (Gini, log-Poisson confidence
+  intervals, early-warning scoring), a public [site](https://datakrdo.github.io/vigilancia-respiratoria-ar/)
+  and a Power BI model with row- and object-level security.
 
 ## Data Analysis 📊
 
