@@ -8,46 +8,16 @@ no invasiva*: el desenlace primario es **Estadio 3–4 versus Estadio 1–2**, c
 publicados (score de riesgo de Mayo, APRI), y el umbral operativo es un umbral de *descarte* (sensibilidad ≥ 90%). Los
 análisis de estadio exacto y ordinal son desenlaces secundarios exploratorios.
 
-**Respuesta corta: no con estos datos.** Los modelos no mejoran el score de Mayo de 1989 y, con 90% de sensibilidad,
-ahorrarían la biopsia a solo ~10–15% de los pacientes, de los cuales cerca de la mitad igual tendría enfermedad avanzada. El
-valor del proyecto es la forma honesta y libre de fugas de información en que se llega a esa respuesta, más un pipeline,
-un CLI y una demo desplegables.
-
 El entregable narrativo y autocontenido es
 **[`pbc-portfolio_es.ipynb`](pbc-portfolio_es.ipynb)** — no importa el paquete local `pbc` y puede leerse o re-ejecutarse
 por sí solo. El código fuente mantenido y testeado vive en `src/pbc/`, orquestado por el CLI `pbc`. El modelo desplegado
 está documentado en **[`MODEL_CARD_es.md`](MODEL_CARD_es.md)**.
 
-## Resultados 📊
+## Datos 📎
 
-Validación cruzada anidada repetida (5 × 5 folds, ajuste con Optuna y selección del umbral de descarte dentro de cada fold)
-sobre todas las filas etiquetadas. Sensibilidad objetivo 90%; "biopsias evitadas" es la proporción de pacientes que cae por
-debajo del umbral.
+`data/raw/pbc.csv` es el dataset original de PBC de Mayo Clinic: 418 pacientes y 20 columnas (demografía, signos clínicos y laboratorio), de los cuales 412 tienen el estadio histológico (`Stage`) etiquetado. Son 312 pacientes de un ensayo aleatorizado de D-penicilamina y 106 pacientes de registro que no entraron al ensayo (100 con estadio). El desenlace primario es Estadio 3-4 contra Estadio 1-2: 299 avanzados y 113 tempranos, una prevalencia de 73%. No se agrega ninguna cohorte externa.
 
-**Conjunto `core` — variables de rutina, los 412 pacientes etiquetados**
-
-| Modelo | AUROC [IC 95%] | Sensibilidad | Especificidad | VPN | Biopsias evitadas | Pend. calib. |
-| --- | --- | --- | --- | --- | --- | --- |
-| logistic (desplegado) | 0,67 [0,57, 0,77] | 0,93 | 0,23 | 0,55 | 12% | 0,89 |
-| random forest | 0,67 [0,56, 0,77] | 0,93 | 0,20 | 0,56 | 11% | 1,27 |
-| HistGB | 0,67 [0,56, 0,77] | 0,94 | 0,17 | 0,54 | 9% | 0,71 |
-| Score de Mayo | 0,69 [0,60, 0,80] | 0,92 | 0,22 | 0,50 | 12% | 0,95 |
-
-**Conjunto `full` — más el panel de laboratorio extendido, 312 pacientes del ensayo**
-
-| Modelo | AUROC [IC 95%] | Sensibilidad | Especificidad | VPN | Biopsias evitadas | Pend. calib. |
-| --- | --- | --- | --- | --- | --- | --- |
-| logistic (desplegado) | 0,73 [0,63, 0,81] | 0,91 | 0,23 | 0,52 | 13% | 0,80 |
-| random forest | 0,74 [0,61, 0,82] | 0,91 | 0,26 | 0,48 | 14% | 0,98 |
-| HistGB | 0,71 [0,60, 0,81] | 0,90 | 0,20 | 0,41 | 13% | 0,74 |
-| Score de Mayo | 0,71 [0,60, 0,80] | 0,91 | 0,20 | 0,45 | 12% | 0,97 |
-| APRI | 0,67 [0,55, 0,82] | 0,96 | 0,07 | 0,24 | 5% | 0,69 |
-
-- Ningún modelo de ML supera al score de Mayo, y todos los intervalos se superponen: las diferencias están dentro del ruido.
-- La prevalencia de Estadio 3–4 es 73%, así que incluso con 90% de sensibilidad el VPN es de solo ~0,5: cerca de la mitad de los
-  pacientes "descartados" en realidad tiene enfermedad avanzada. No es una prueba que ahorre biopsias.
-- `core` cumple el tamaño muestral mínimo de Riley et al. (306 necesarios, 412 disponibles); `full` no (359 necesarios, 312 disponibles).
-- El score de Mayo se derivó en esta misma cohorte (para supervivencia), así que es un comparador favorable, no externo.
+![Faltantes por columna y por ID de paciente: los 106 pacientes con ID mayor a 312 (a la derecha de la línea roja) no tienen el panel extendido.](assets/eda_missingness_es.png)
 
 ## Por qué está construido así 🧭
 
@@ -72,6 +42,90 @@ debajo del umbral.
 
 Cada transformador se ajusta por fold dentro de un `Pipeline` y solo hace `.transform` sobre las filas retenidas, así que nada de los
 datos de test se filtra de vuelta al entrenamiento.
+
+## Herramientas 🛠️
+
+- Python, pandas, NumPy, scikit-learn (pipelines, `HistGradientBoostingClassifier`, `TunedThresholdClassifierCV`)
+- Optuna, SHAP, Streamlit, joblib
+- Matplotlib, seaborn
+- uv, ruff, pytest
+
+## Skills 🧠
+
+- Manejo de datos consciente de la cohorte y diseño de conjuntos de variables ante ausencia estructural
+- Pipelines de preprocesamiento sin fuga de datos
+- Clasificación binaria, multiclase y ordinal
+- Validación cruzada anidada y corrección de optimismo bootstrap (y saber cuándo no es válida)
+- Calibración, análisis de curva de decisión y selección de umbral de descarte
+- Comparación contra scores clínicos publicados (Mayo, APRI)
+- Evaluación estadística de tamaño de muestra (Riley et al.)
+- Explicabilidad de modelos (SHAP), model card, CLI y demo en Streamlit
+- Entornos reproducibles y CI (uv, ruff, pytest, GitHub Actions)
+
+## Diseño 🏗️
+
+- `src/pbc/data.py` valida el CSV, construye los desenlaces, define `CORE_FEATURES`/`FULL_FEATURES` y `select_feature_set` (el
+  conjunto `full` conserva solo pacientes del ensayo), y reporta eventos por variable (Peduzzi et al.).
+- `src/pbc/preprocessing.py` provee transformadores ajustados por fold: imputación por mediana/`__MISSING__` + escalado
+  (`build_preprocessor`) y un caster sin imputación para el soporte nativo de NaN/categóricas de
+  `HistGradientBoostingClassifier`.
+- `src/pbc/scores.py` implementa el score de riesgo de Mayo y el APRI (con fórmulas testeadas unitariamente).
+- `src/pbc/modeling.py` define `logistic` (desplegado), `random_forest`, `hist_gradient_boosting`, `mayo`, `apri` y los estimadores
+  secundarios multiclase/ordinal. `build_named_pipeline` es la única fuente de verdad de "pipeline sin ajustar para el modelo X".
+- `src/pbc/evaluation.py` provee AUROC/AUPRC/sensibilidad/especificidad/VPP/VPN/Brier, pendiente/intercepto de calibración de Cox,
+  intervalos bootstrap, análisis de curva de decisión, tamaño muestral de Riley, estabilidad de predicciones y
+  `select_operating_threshold` con el scorer de descarte (especificidad máxima con sensibilidad ≥ 90%, vía `TunedThresholdClassifierCV`).
+- `src/pbc/validation.py` — CV anidada repetida (con calibración agrupada fuera de fold) y corrección de optimismo.
+- `src/pbc/predict.py` — `train_final` y `predict_patient`, compartidos por el CLI y la app de Streamlit en `app/`.
+- `src/pbc/explainability.py`, `hpo.py`, `reporting.py` — SHAP, Optuna y generación de artefactos (incluida la Tabla 1).
+
+## Resultados 📊
+
+En resumen, con estos datos la respuesta es no. Los modelos no mejoran el score de Mayo de 1989 y, con 90% de sensibilidad,
+ahorrarían la biopsia a solo ~10–15% de los pacientes, de los cuales cerca de la mitad igual tendría enfermedad avanzada. El
+valor del proyecto es la forma honesta y libre de fugas de información en que se llega a esa respuesta, más un pipeline,
+un CLI y una demo desplegables.
+
+Validación cruzada anidada repetida (5 × 5 folds, ajuste con Optuna y selección del umbral de descarte dentro de cada fold)
+sobre todas las filas etiquetadas. Sensibilidad objetivo 90%; "biopsias evitadas" es la proporción de pacientes que cae por
+debajo del umbral.
+
+**Conjunto `core` — variables de rutina, los 412 pacientes etiquetados**
+
+| Modelo | AUROC [IC 95%] | Sensibilidad | Especificidad | VPN | Biopsias evitadas | Pend. calib. |
+| --- | --- | --- | --- | --- | --- | --- |
+| logistic (desplegado) | 0,67 [0,57, 0,77] | 0,93 | 0,23 | 0,55 | 12% | 0,89 |
+| random forest | 0,67 [0,56, 0,77] | 0,93 | 0,20 | 0,56 | 11% | 1,27 |
+| HistGB | 0,67 [0,56, 0,77] | 0,94 | 0,17 | 0,54 | 9% | 0,71 |
+| Score de Mayo | 0,69 [0,60, 0,80] | 0,92 | 0,22 | 0,50 | 12% | 0,95 |
+
+**Conjunto `full` — más el panel de laboratorio extendido, 312 pacientes del ensayo**
+
+| Modelo | AUROC [IC 95%] | Sensibilidad | Especificidad | VPN | Biopsias evitadas | Pend. calib. |
+| --- | --- | --- | --- | --- | --- | --- |
+| logistic (desplegado) | 0,73 [0,63, 0,81] | 0,91 | 0,23 | 0,52 | 13% | 0,80 |
+| random forest | 0,74 [0,61, 0,82] | 0,91 | 0,26 | 0,48 | 14% | 0,98 |
+| HistGB | 0,71 [0,60, 0,81] | 0,90 | 0,20 | 0,41 | 13% | 0,74 |
+| Score de Mayo | 0,71 [0,60, 0,80] | 0,91 | 0,20 | 0,45 | 12% | 0,97 |
+| APRI | 0,67 [0,55, 0,82] | 0,96 | 0,07 | 0,24 | 5% | 0,69 |
+
+![AUROC de CV anidada con intervalos del 95% y pendiente de calibración, por modelo y conjunto de variables.](assets/nested_cv_forest_es.png)
+
+- Ningún modelo de ML supera al score de Mayo, y todos los intervalos se superponen: las diferencias están dentro del ruido.
+- Pendiente de calibración: 1 es lo ideal. Menor a 1 significa que el modelo tiene exceso de confianza (probabilidades demasiado extremas), mayor a 1 que tiene poca confianza (probabilidades demasiado cerca del promedio). El bosque aleatorio en `core` está en 1,27 y HistGB en 0,71, mientras que la logística desplegada está en 0,89 (0,80 en `full`). Las pendientes son ruidosas con este tamaño muestral.
+- La prevalencia de Estadio 3–4 es 73%, así que incluso con 90% de sensibilidad el VPN es de solo ~0,5: cerca de la mitad de los
+  pacientes "descartados" en realidad tiene enfermedad avanzada. No es una prueba que ahorre biopsias.
+- `core` cumple el tamaño muestral mínimo de Riley et al. (306 necesarios, 412 disponibles); `full` no (359 necesarios, 312 disponibles).
+- El score de Mayo se derivó en esta misma cohorte (para supervivencia), así que es un comparador favorable, no externo.
+
+## Notebooks 📓
+
+- `01_eda_es.ipynb` — esquema de la cohorte, ausencia estructural de datos, los dos conjuntos de variables.
+- `02_modeling_es.ipynb` — resultados de split único para ambos conjuntos, scores clínicos de referencia, umbrales de descarte.
+- `03_model_development_es.ipynb` — CV anidada, corrección de optimismo, Optuna, SHAP y la comparación completa.
+- `pbc-portfolio_es.ipynb` (raíz del repo) — entregable narrativo autocontenido, no necesita el paquete `pbc`.
+
+Cada notebook tiene un gemelo en inglés (`*.ipynb`).
 
 ## Inicio rápido 🚀
 
@@ -103,54 +157,10 @@ uv run pbc predict --input paciente.json           # age_years + columnas del da
 uv run streamlit run app/streamlit_app.py          # demo bilingüe EN/ES
 ```
 
-## Diseño 🏗️
+## Limitaciones 📎
 
-- `src/pbc/data.py` valida el CSV, construye los desenlaces, define `CORE_FEATURES`/`FULL_FEATURES` y `select_feature_set` (el
-  conjunto `full` conserva solo pacientes del ensayo), y reporta eventos por variable (Peduzzi et al.).
-- `src/pbc/preprocessing.py` provee transformadores ajustados por fold: imputación por mediana/`__MISSING__` + escalado
-  (`build_preprocessor`), imputación KNN, y un caster sin imputación para el soporte nativo de NaN/categóricas de
-  `HistGradientBoostingClassifier`.
-- `src/pbc/scores.py` implementa el score de riesgo de Mayo y el APRI (con fórmulas testeadas unitariamente).
-- `src/pbc/modeling.py` define `logistic` (desplegado), `random_forest`, `hist_gradient_boosting`, `mayo`, `apri` y los estimadores
-  secundarios multiclase/ordinal. `build_named_pipeline` es la única fuente de verdad de "pipeline sin ajustar para el modelo X".
-- `src/pbc/evaluation.py` provee AUROC/AUPRC/sensibilidad/especificidad/VPP/VPN/Brier, pendiente/intercepto de calibración de Cox,
-  intervalos bootstrap, análisis de curva de decisión, tamaño muestral de Riley, estabilidad de predicciones y
-  `select_operating_threshold` con el scorer de descarte (especificidad máxima con sensibilidad ≥ 90%, vía `TunedThresholdClassifierCV`).
-- `src/pbc/validation.py` — CV anidada repetida (con calibración agrupada fuera de fold) y corrección de optimismo.
-- `src/pbc/predict.py` — `train_final` y `predict_patient`, compartidos por el CLI y la app de Streamlit en `app/`.
-- `src/pbc/explainability.py`, `hpo.py`, `reporting.py` — SHAP, Optuna y generación de artefactos (incluida la Tabla 1).
+Es una cohorte pequeña, histórica (1974-1984), de un solo centro, con clases desbalanceadas y ausencia estructural de datos por diseño. No hay validación externa ni temporal, y el estadio es una etiqueta histológica con desacuerdo interobservador conocido. Los resultados son exploratorios y **no deben informar decisiones clínicas**; ver [`MODEL_CARD_es.md`](MODEL_CARD_es.md).
 
-## Notebooks 📓
+## Licencia
 
-- `01_eda_es.ipynb` — esquema de la cohorte, ausencia estructural de datos, los dos conjuntos de variables.
-- `02_modeling_es.ipynb` — resultados de split único para ambos conjuntos, scores clínicos de referencia, umbrales de descarte.
-- `03_model_development_es.ipynb` — CV anidada, corrección de optimismo, Optuna, SHAP y la comparación completa.
-- `pbc-portfolio_es.ipynb` (raíz del repo) — entregable narrativo autocontenido, no necesita el paquete `pbc`.
-
-Cada notebook tiene un gemelo en inglés (`*.ipynb`).
-
-## Skills 🧠
-
-- Manejo de datos consciente de la cohorte y diseño de conjuntos de variables ante ausencia estructural
-- Pipelines de preprocesamiento sin fuga de datos
-- Clasificación binaria, multiclase y ordinal
-- Validación cruzada anidada y corrección de optimismo bootstrap (y saber cuándo no es válida)
-- Calibración, análisis de curva de decisión y selección de umbral de descarte
-- Comparación contra scores clínicos publicados (Mayo, APRI)
-- Evaluación estadística de tamaño de muestra (Riley et al.)
-- Explicabilidad de modelos (SHAP), model card, CLI y demo en Streamlit
-- Entornos reproducibles y CI (uv, ruff, pytest, GitHub Actions)
-
-## Herramientas 🛠️
-
-- Python, pandas, NumPy, scikit-learn (pipelines, `HistGradientBoostingClassifier`, `TunedThresholdClassifierCV`)
-- Optuna, SHAP, Streamlit, joblib
-- Matplotlib, seaborn
-- uv, ruff, pytest
-
-## Procedencia de los datos y limitaciones 📎
-
-`data/raw/pbc.csv` es el dataset PBC original de 418 filas y 20 columnas (412 valores de `Stage` etiquetados); no se agrega ninguna
-cohorte externa. Es una cohorte pequeña, histórica (1974–1984), de un solo centro, con clases desbalanceadas y ausencia estructural de
-datos por diseño. No hay validación externa ni temporal, y el estadio es una etiqueta histológica con desacuerdo interobservador
-conocido. Los resultados son exploratorios y **no deben informar decisiones clínicas**; ver [`MODEL_CARD_es.md`](MODEL_CARD_es.md).
+MIT, ver [`LICENSE`](LICENSE).

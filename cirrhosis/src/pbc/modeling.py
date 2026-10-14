@@ -129,12 +129,12 @@ class ModelSpec:
 
 
 # Single source of truth for every estimator's default hyperparameters and
-# preprocessing contract. `logistic_C=0.1` (ridge) was empirically better than
-# the previous unregularized `C=1.0` at this sample size (5x5 repeated CV
-# AUROC: 0.708 vs 0.690); HistGB's capacity is deliberately restricted for the
-# same reason (see the plan). `train_named_model` tunes `logistic`,
-# `random_forest`, and `hist_gradient_boosting` per outer CV fold
-# via Optuna rather than fixing these by inspecting the scores being reported.
+# preprocessing contract. `logistic` uses ridge (`C=0.1`) and HistGB's capacity is
+# deliberately restricted: both are conservative starting points for ~300 training
+# rows, not tuned values. `train_named_model` tunes `logistic`, `random_forest`, and
+# `hist_gradient_boosting` per outer CV fold via Optuna rather than fixing these by
+# inspecting the scores being reported. No `class_weight`: reweighting classes would
+# shift predicted probabilities toward a 50% prevalence and ruin calibration.
 MODEL_SPECS: dict[str, ModelSpec] = {
     "logistic": ModelSpec(
         LogisticRegression,

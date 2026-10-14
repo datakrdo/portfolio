@@ -91,7 +91,7 @@ def nested_cv_evaluate(
     `tune_hyperparameters` matters for the headline numbers: fixing
     hyperparameters once by inspecting cross-validated scores and then
     reporting those same scores is the exact optimism this module exists to
-    avoid (see Phase 9 of the plan). With it on, each outer fold reruns its
+    avoid. With it on, each outer fold reruns its
     own Optuna search (`n_trials`, scored via `inner_splits`-fold CV) before
     threshold selection, so the reported AUROC already reflects the cost of
     tuning rather than assuming it away.

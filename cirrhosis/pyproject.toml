@@ -7,8 +7,10 @@ name = "pbc-modeling"
 version = "2026.1.0"
 description = "PBC cirrhosis stage prediction: production pipeline and portfolio notebook"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
-authors = [{ name = "Federico Dignani" }]
+authors = [{ name = "datakrdo" }]
 dependencies = [
     "numpy>=2.5",
     "pandas>=3.0",

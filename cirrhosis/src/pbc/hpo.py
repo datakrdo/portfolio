@@ -1,4 +1,4 @@
-"""Optional Optuna hyperparameter optimization for primary comparators."""
+"""Optional Optuna hyperparameter optimization for the ML models."""
 
 from __future__ import annotations
 
