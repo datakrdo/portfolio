@@ -22,11 +22,11 @@ differently, let me know at the email above.
 
 ## Machine Learning 🤖
 
-- **[Fraud detection — credit card transactions](fraud)** 💳 — ~1.85M Sparkov transactions,
+- **[Fraud detection — credit card transactions](https://github.com/datakrdo/credit-card-fraud-detection)** 💳 — ~1.85M Sparkov transactions,
   0.58% fraud prevalence. Temporal split (no leakage), causal velocity features, PR-AUC over
   accuracy, and a dollar-value decision threshold. GPU-trained XGBoost/LightGBM, shipped as
   an installable CLI package.
-- **[Primary biliary cirrhosis (PBC) staging](cirrhosis)** 🩺 — production-oriented modeling
+- **[Primary biliary cirrhosis (PBC) staging](https://github.com/datakrdo/pbc-stage-prediction)** 🩺 — production-oriented modeling
   of a 418-row clinical cohort with structural (non-random) missingness. Nested CV, bootstrap
   optimism correction, and SHAP, all inside leakage-safe pipelines.
 - **[Winning Space Race with Data Science](https://github.com/datakrdo/coursera_IBM_capstone)**
@@ -43,7 +43,7 @@ differently, let me know at the email above.
 
 ## Data Analysis 📊
 
-- **[Alan Shearer's 260](shearer)** ⚽ — era-adjusted, fully-sourced analysis of Alan
+- **[Alan Shearer's 260](https://github.com/datakrdo/shearer-goal-analysis)** ⚽ — era-adjusted, fully-sourced analysis of Alan
   Shearer's Premier League scoring record, in R. Five independent sources cross-checked
   (468/468 matches agree), a `{targets}` pipeline, and a six-panel Shiny dashboard.
 
